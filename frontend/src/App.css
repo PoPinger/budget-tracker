@@ -182,3 +182,104 @@
     border-right-color: var(--border);
   }
 }
+.app-shell,
+.topbar,
+.tabbar,
+.month-row,
+.month-card,
+.content-grid,
+.panel,
+.form-stack,
+.form-label,
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.input,
+.textarea,
+select,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
+}
+
+.month-card .input,
+.month-card input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .topbar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .tabbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .tab {
+    width: 100%;
+    text-align: center;
+  }
+
+  .month-row {
+    width: 100%;
+  }
+
+  .month-card {
+    width: 100%;
+  }
+
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 20px;
+  }
+
+  .panel-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .button-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .actions-inline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
