@@ -1,51 +1,46 @@
 from datetime import date, datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class ExpenseBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=150)
-    amount: Decimal = Field(..., gt=0)
+class ExpenseCreate(BaseModel):
+    category_id: int
+    name: str = Field(min_length=2, max_length=255)
+    amount: float = Field(gt=0)
     expense_date: date
-    notes: str | None = Field(default=None, max_length=2000)
-    category_id: int = Field(..., gt=0)
-
-
-class ExpenseCreate(ExpenseBase):
-    pass
+    notes: str | None = None
 
 
 class ExpenseUpdate(BaseModel):
-    title: str | None = Field(default=None, min_length=1, max_length=150)
-    amount: Decimal | None = Field(default=None, gt=0)
+    category_id: int | None = None
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    amount: float | None = Field(default=None, gt=0)
     expense_date: date | None = None
-    notes: str | None = Field(default=None, max_length=2000)
-    category_id: int | None = Field(default=None, gt=0)
+    notes: str | None = None
 
 
 class ExpenseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    title: str
-    amount: Decimal
+    user_id: int
+    category_id: int
+    name: str
+    amount: float
     expense_date: date
     notes: str | None
-    category_id: int
     created_at: datetime
     updated_at: datetime
 
 
 class ExpenseWithCategoryResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
-    title: str
-    amount: Decimal
-    expense_date: date
-    notes: str | None
+    user_id: int
     category_id: int
     category_name: str
+    name: str
+    amount: float
+    expense_date: date
+    notes: str | None
     created_at: datetime
     updated_at: datetime
