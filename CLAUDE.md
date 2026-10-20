@@ -43,6 +43,8 @@ frontend/
   src/App.jsx                  # THE live app: one ~1300-line component, tabs via local state
   src/Login.jsx, api.js, auth.js  # live login screen, fetch client, token storage (localStorage)
   src/index.css, App.css       # styles (old navy/blue theme, to be replaced by Graphite Volt)
+  public/icons/logo.png        # original logo (white background); UI uses icons/logo-transparent.png (256x256)
+  public/favicon-32.png, apple-touch-icon.png  # generated from the logo
   src/App.tsx, pages/*Page.tsx, api/*.ts, components/layout/*, types/*, utils/*  # DEAD CODE, not imported
 ```
 
@@ -161,7 +163,7 @@ Frontend:
 - [ ] Amounts in tables are unformatted (`38.2`); dates are raw ISO strings.
 - [ ] Tables are cut off on mobile.
 - [ ] Success/error notices are detected by substring matching on Polish messages ("dodany", "zosta").
-- [ ] `index.html` title is "frontend" and `lang="en"`.
+- [x] ~~`index.html` title is "frontend" and `lang="en"`~~: now "Budget Tracker", `lang="pl"`, PNG favicons.
 - [ ] The whole UI uses the old navy/blue theme; replace it with Graphite Volt.
 
 Product / tooling:

@@ -45,6 +45,10 @@ export default function Login({ onAuthSuccess }) {
 
       <div className="auth-grid">
         <div className="auth-copy">
+          <div className="auth-brand">
+            <img className="brand-logo" src="/icons/logo-transparent.png" alt="" />
+            Budget Tracker
+          </div>
           <div className="eyebrow">Premium Finance SaaS</div>
           <h1>Kontroluj budżet jak nowoczesny startup.</h1>
           <p>
