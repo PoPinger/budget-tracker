@@ -1,7 +1,14 @@
+import { RefreshCw } from "lucide-react";
 import { useMemo } from "react";
+import LimitPill from "../components/LimitPill";
+import MonthInput from "../components/MonthInput";
 import Notice from "../components/Notice";
 import Panel, { PanelHeader } from "../components/Panel";
-import { getSpentForCategory } from "../utils/budget";
+import ProgressBar from "../components/ProgressBar";
+import RowActions from "../components/RowActions";
+import { useScrollIntoView } from "../hooks/useScrollIntoView";
+import { getSpentForCategory, limitState, usagePercent } from "../utils/budget";
+import { formatMoney, formatMonthName } from "../utils/format";
 
 export default function CategoriesPage({ form, data, selectedMonth, formMessage }) {
   const { categories, expenses, loadingCategories, categoriesError, loadCategories } = data;
@@ -11,113 +18,64 @@ export default function CategoriesPage({ form, data, selectedMonth, formMessage 
     [categories, selectedMonth],
   );
 
+  const editRef = useScrollIntoView(form.editingCategoryId);
+  const isEditing = form.editingCategoryId !== null;
+
   return (
-    <section className="content-grid">
-      <Panel>
-        <h2>{form.editingCategoryId !== null ? "Zarządzaj kategoriami" : "Dodaj kategorię"}</h2>
-
-        <form onSubmit={form.handleCreateCategory} className="form-stack">
-          <label className="form-label">
-            Miesiąc
-            <input className="input" type="date" value={form.month} onChange={(e) => form.setMonth(e.target.value)} required />
-          </label>
-
-          <label className="form-label">
-            Nazwa kategorii
-            <input
-              className="input"
-              type="text"
-              placeholder="Np. Jedzenie"
-              value={form.categoryName}
-              onChange={(e) => form.setCategoryName(e.target.value)}
-              required
-            />
-          </label>
-
-          <label className="form-label">
-            Limit
-            <input
-              className="input"
-              type="number"
-              min="1"
-              step="0.01"
-              placeholder="Np. 500"
-              value={form.limitAmount}
-              onChange={(e) => form.setLimitAmount(e.target.value)}
-              required
-            />
-          </label>
-
-          {formMessage && (
-            <Notice tone={formMessage.toLowerCase().includes("dodana") ? "success" : "error"}>
-              {formMessage}
-            </Notice>
-          )}
-
-          <button className="primary-btn" type="submit">
-            Dodaj kategorię
-          </button>
-        </form>
-
-        {form.editingCategoryId !== null && (
-          <>
-            <div className="divider" />
-            <h3>Edytuj kategorię</h3>
-
-            <form onSubmit={form.handleUpdateCategory} className="form-stack">
-              <label className="form-label">
-                Miesiąc
+    <div className={isEditing ? "split has-edit" : "split"}>
+      {isEditing && (
+        <Panel className="split-edit card-editing" ref={editRef}>
+          <PanelHeader title="Edytuj kategorię" />
+          <form onSubmit={form.handleUpdateCategory} className="form-stack">
+            <div className="field">
+              <label htmlFor="edit-category-name">Nazwa</label>
+              <input
+                id="edit-category-name"
+                className="input"
+                type="text"
+                value={form.editingCategoryName}
+                onChange={(e) => form.setEditingCategoryName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="edit-category-limit">Limit (zł)</label>
                 <input
-                  className="input"
-                  type="date"
-                  value={form.editingCategoryMonth}
-                  onChange={(e) => form.setEditingCategoryMonth(e.target.value)}
-                  required
-                />
-              </label>
-
-              <label className="form-label">
-                Nazwa
-                <input
-                  className="input"
-                  type="text"
-                  value={form.editingCategoryName}
-                  onChange={(e) => form.setEditingCategoryName(e.target.value)}
-                  required
-                />
-              </label>
-
-              <label className="form-label">
-                Limit
-                <input
+                  id="edit-category-limit"
                   className="input"
                   type="number"
+                  inputMode="decimal"
                   min="1"
                   step="0.01"
                   value={form.editingCategoryLimit}
                   onChange={(e) => form.setEditingCategoryLimit(e.target.value)}
                   required
                 />
-              </label>
-
-              <div className="button-row">
-                <button className="primary-btn" type="submit">
-                  Zapisz kategorię
-                </button>
-                <button className="secondary-btn" type="button" onClick={form.cancelCategoryEdit}>
-                  Anuluj
-                </button>
               </div>
-            </form>
-          </>
-        )}
-      </Panel>
+              <div className="field">
+                <label htmlFor="edit-category-month">Miesiąc</label>
+                <MonthInput id="edit-category-month" value={form.editingCategoryMonth} onChange={form.setEditingCategoryMonth} />
+              </div>
+            </div>
+            <div className="button-row">
+              <button className="btn btn-primary" type="submit">
+                Zapisz kategorię
+              </button>
+              <button className="btn btn-secondary" type="button" onClick={form.cancelCategoryEdit}>
+                Anuluj
+              </button>
+            </div>
+          </form>
+        </Panel>
+      )}
 
-      <Panel>
+      <Panel className="split-list">
         <PanelHeader
-          title="Moje kategorie"
+          title={`Kategorie – ${formatMonthName(selectedMonth).toLowerCase()}`}
           action={
-            <button className="primary-btn" onClick={loadCategories}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={loadCategories}>
+              <RefreshCw size={14} aria-hidden="true" />
               Odśwież
             </button>
           }
@@ -126,51 +84,91 @@ export default function CategoriesPage({ form, data, selectedMonth, formMessage 
         {loadingCategories && <p className="muted">Ładowanie kategorii...</p>}
         {categoriesError && <Notice tone="error">{categoriesError}</Notice>}
         {!loadingCategories && !categoriesError && filteredCategories.length === 0 && (
-          <p className="muted">Brak kategorii dla wybranego miesiąca.</p>
+          <p className="muted">Brak kategorii w tym miesiącu.</p>
         )}
 
         {!loadingCategories && !categoriesError && filteredCategories.length > 0 && (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Miesiąc</th>
-                  <th>Nazwa</th>
-                  <th>Limit</th>
-                  <th>Akcje</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCategories.map((category) => {
-                  const categorySpent = getSpentForCategory(expenses, selectedMonth, category.id);
-                  const categoryLimit = Number(category.limit_amount || 0);
-                  const exceeded = categorySpent > categoryLimit;
+          <div className="item-list">
+            {filteredCategories.map((category) => {
+              const spent = getSpentForCategory(expenses, selectedMonth, category.id);
+              const limit = Number(category.limit_amount || 0);
+              const state = limitState(spent, limit);
 
-                  return (
-                    <tr key={category.id}>
-                      <td>{category.id}</td>
-                      <td>{category.month}</td>
-                      <td>{category.name}</td>
-                      <td className={exceeded ? "danger-text semibold" : ""}>{category.limit_amount}</td>
-                      <td>
-                        <div className="actions-inline">
-                          <button className="edit-btn" onClick={() => form.startCategoryEdit(category)}>
-                            Edytuj
-                          </button>
-                          <button className="danger-btn" onClick={() => form.handleDeleteCategory(category.id)}>
-                            Usuń
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              return (
+                <div key={category.id} className="category-row">
+                  <div className="category-main">
+                    <div className="usage-top">
+                      <span className="usage-name">
+                        {category.name}
+                        <LimitPill state={state} spent={spent} limit={limit} />
+                      </span>
+                    </div>
+                    <ProgressBar percent={usagePercent(spent, limit)} state={state} label={`${category.name}: wykorzystanie limitu`} />
+                    <div className="category-meta muted">
+                      Wydano <b className="negative">{formatMoney(spent)}</b> z {formatMoney(limit)}
+                    </div>
+                  </div>
+                  <div className="row-actions">
+                    <RowActions
+                      onEdit={() => form.startCategoryEdit(category)}
+                      onDelete={() => form.handleDeleteCategory(category.id)}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </Panel>
-    </section>
+
+      <Panel className="split-add">
+        <PanelHeader title="Dodaj kategorię" />
+        <form onSubmit={form.handleCreateCategory} className="form-stack">
+          <div className="field">
+            <label htmlFor="category-name">Nazwa kategorii</label>
+            <input
+              id="category-name"
+              className="input"
+              type="text"
+              placeholder="Np. Jedzenie"
+              value={form.categoryName}
+              onChange={(e) => form.setCategoryName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="field-row">
+            <div className="field">
+              <label htmlFor="category-limit">Limit (zł)</label>
+              <input
+                id="category-limit"
+                className="input"
+                type="number"
+                inputMode="decimal"
+                min="1"
+                step="0.01"
+                placeholder="Np. 500"
+                value={form.limitAmount}
+                onChange={(e) => form.setLimitAmount(e.target.value)}
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="category-month">Miesiąc</label>
+              <MonthInput id="category-month" value={form.month} onChange={form.setMonth} />
+            </div>
+          </div>
+
+          {formMessage && (
+            <Notice tone={formMessage.toLowerCase().includes("dodana") ? "success" : "error"}>
+              {formMessage}
+            </Notice>
+          )}
+
+          <button className="btn btn-primary btn-block" type="submit">
+            Dodaj kategorię
+          </button>
+        </form>
+      </Panel>
+    </div>
   );
 }

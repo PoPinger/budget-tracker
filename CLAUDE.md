@@ -6,7 +6,7 @@ Guidance for Claude Code when working in this repository.
 
 - **Plan first.** Before editing anything, show a plan (files + what changes) and wait for explicit approval.
 - **Minimal changes.** Touch only what the task needs. No drive-by refactors, reformatting or edits to unrelated code.
-- **UI text in Polish.** Every user-visible string (labels, buttons, errors, empty states) is Polish.
+- **UI text in Polish.** Every user-visible string (labels, buttons, errors, empty states) is Polish. Money via `formatMoney` (`1 301,00 zł`), percentages via `formatPercent`, dates via `formatDate`.
 - **Build before commit.** Run `npm run build` in `frontend/` before every commit (and the backend import check below if backend files changed). Never commit a failing build.
 - **Push only after confirmation.** Commit and push to `main` only after the user confirms. Never force push and never rewrite git history.
 - **Never commit secrets.** See the Security section.
@@ -40,15 +40,17 @@ backend/
   app/api/v1/endpoints/        # auth, budgets, categories, expenses, stats, health
 frontend/
   src/main.tsx                 # entry: renders App.jsx
-  src/App.jsx                  # auth gate + layout + tab switching; calls all state hooks
-  src/constants.js             # TABS, DEFAULT_MONTH
+  src/App.jsx                  # auth gate + layout (sidebar / bottom nav) + tab switching; calls all state hooks
+  src/constants.js             # TABS, NAV_ITEMS (Pulpit, Wydatki, Kategorie, Budżet)
   src/api.js, auth.js          # fetch client, token storage (localStorage)
   src/hooks/                   # useBudgetData (server data + loaders), useMessages,
                                # useCategoryForms / useBudgetForms / useExpenseForms (form state + handlers)
   src/pages/                   # LoginPage, DashboardPage, CategoriesPage, BudgetsPage, ExpensesPage (render only)
-  src/components/              # AppHeader, TabBar, MonthPicker, Banner, Notice, Panel, StatCard, ProgressBar, CategoryChart
-  src/utils/                   # format.js (formatMoney), budget.js (spent per category), validation.js
-  src/index.css                # all styles; Graphite Volt variables in :root
+  src/components/              # Sidebar (desktop), BottomNav (mobile), PageHeader, MonthSwitcher, AccountMenu,
+                               # Panel (card), ProgressBar, LimitPill, ExpenseRow, RowActions, Notice, Banner, MonthInput, NavIcon
+  src/utils/                   # format.js (money/percent/date/month names, Polish plurals), month.js,
+                               # budget.js (spent per category, limit state), validation.js (incl. over-limit warning)
+  src/index.css                # all styles; Graphite Volt variables in :root; mobile layout below 900 px
   public/icons/logo.png        # original logo (white background); UI uses icons/logo-transparent.png (256x256)
   public/favicon-32.png, apple-touch-icon.png  # generated from the logo
 ```
@@ -163,17 +165,18 @@ Backend / database:
 
 Frontend:
 - [x] ~~Unused TS router pages, `api/*.ts`, layout, `App.css`, template assets~~: removed, along with `react-router-dom`.
-- [ ] Selected month is hardcoded to `2026-04-01`; the dashboard is empty after login.
-- [ ] Month picker is a full date input; any day other than the 1st shows no data (backend matches `month` exactly).
-- [ ] The expense category dropdown lists categories from all months.
-- [ ] The UI blocks any expense that would exceed a category limit, so "exceeded" is practically unreachable; there is no "near the limit" warning.
-- [ ] Amounts in tables are unformatted (`38.2`); dates are raw ISO strings.
-- [ ] Tables are cut off on mobile.
+- [x] ~~Selected month hardcoded to April 2026~~: starts on the current month.
+- [x] ~~Month picker was a date input~~: month switcher, always the 1st of the month.
+- [x] ~~Expense category dropdown listed all months~~: only the selected month's categories.
+- [x] ~~Over-limit expenses were blocked~~: allowed, with an inline amber warning before saving; warning (>= 80 %) and exceeded pills everywhere.
+- [x] ~~Unformatted amounts and ISO dates~~: `1 301,00 zł`, `67,5 %`, `17 paź 2026`.
+- [x] ~~Tables cut off on mobile~~: no tables; rows become cards on mobile.
 - [ ] Success/error notices are detected by substring matching on Polish messages ("dodany", "zosta").
 - [x] ~~`index.html` title is "frontend" and `lang="en"`~~: now "Budget Tracker", `lang="pl"`, PNG favicons.
-- [x] ~~Old navy/blue theme~~: all colors now come from the Graphite Volt variables (layout redesign still to do).
+- [x] ~~Old navy/blue theme~~: Graphite Volt redesign (sidebar + bottom nav, cards, pills).
 
 Product / tooling:
 - [ ] No income concept (only budget and expenses).
 - [ ] No tests, no CI, no lint step.
+- [ ] `npx eslint src` crashes (`eslint.config.js` reads `.recommended` from a plugin that no longer exposes it); fix the config before adding a lint step.
 - [x] ~~README local-setup section truncated and Windows-only~~: rewritten for Windows and macOS/Linux.

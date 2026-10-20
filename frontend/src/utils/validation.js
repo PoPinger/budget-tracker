@@ -16,12 +16,11 @@ export function validateBudgetForm(monthValue, amountValue) {
 }
 
 export function validateExpenseForm(
-  { categories, expenses, selectedMonth },
+  { categories },
   categoryId,
   name,
   amount,
   date,
-  expenseIdToIgnore = null,
 ) {
   if (!categoryId) return "Wybierz kategorię.";
   if (!name.trim()) return "Nazwa wydatku nie może być pusta.";
@@ -33,14 +32,29 @@ export function validateExpenseForm(
     categories.find((item) => Number(item.id) === Number(categoryId)) || null;
   if (!category) return "Wybrana kategoria nie istnieje.";
 
+  return "";
+}
+
+// Over-limit expenses are allowed; this returns the inline warning shown before saving.
+export function getLimitWarning(
+  { categories, expenses, selectedMonth },
+  categoryId,
+  amount,
+  expenseIdToIgnore = null,
+) {
+  if (!categoryId || !amount || Number(amount) <= 0) return "";
+
+  const category = categories.find((item) => Number(item.id) === Number(categoryId));
+  if (!category) return "";
+
+  const categoryLimit = Number(category.limit_amount || 0);
   const currentSpent = getSpentForCategory(expenses, selectedMonth, categoryId, expenseIdToIgnore);
   const nextSpent = currentSpent + Number(amount);
-  const categoryLimit = Number(category.limit_amount || 0);
 
   if (categoryLimit > 0 && nextSpent > categoryLimit) {
-    return `Ten wydatek przekracza limit kategorii "${category.name}". Limit: ${formatMoney(
-      categoryLimit,
-    )}, po dodaniu będzie: ${formatMoney(nextSpent)}.`;
+    return `Po zapisaniu przekroczysz limit kategorii „${category.name}” o ${formatMoney(
+      nextSpent - categoryLimit,
+    )} (limit ${formatMoney(categoryLimit)}).`;
   }
 
   return "";

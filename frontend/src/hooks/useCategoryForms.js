@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createCategory, deleteCategory, updateCategory } from "../api";
-import { DEFAULT_MONTH, TABS } from "../constants";
+import { TABS } from "../constants";
 import { validateCategoryForm } from "../utils/validation";
 
 // Add / edit / delete category. State lives above the tabs, so it survives tab switches.
 export function useCategoryForms({ data, messages, selectedMonth, setActiveTab }) {
-  const [month, setMonth] = useState(DEFAULT_MONTH);
+  const [month, setMonth] = useState(selectedMonth);
+
+  // New entries default to the month currently shown.
+  useEffect(() => {
+    setMonth(selectedMonth);
+  }, [selectedMonth]);
   const [categoryName, setCategoryName] = useState("");
   const [limitAmount, setLimitAmount] = useState("");
 

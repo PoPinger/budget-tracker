@@ -1,114 +1,181 @@
-import { useMemo } from "react";
-import CategoryChart from "../components/CategoryChart";
+import ExpenseRow from "../components/ExpenseRow";
+import LimitPill from "../components/LimitPill";
 import Panel, { PanelHeader } from "../components/Panel";
 import ProgressBar from "../components/ProgressBar";
-import StatCard from "../components/StatCard";
-import { formatMoney } from "../utils/format";
+import { TABS } from "../constants";
+import { limitState } from "../utils/budget";
+import { formatMoney, formatPercent, plural } from "../utils/format";
 
-export default function DashboardPage({ overview, loadingOverview }) {
-  const chartData = useMemo(() => {
-    if (!overview?.categories?.length) return [];
-    const maxSpent = Math.max(
-      ...overview.categories.map((item) => Number(item.spent_amount || 0)),
-      1,
-    );
+function budgetState(usage) {
+  if (usage > 100) return "exceeded";
+  if (usage >= 80) return "warn";
+  return "ok";
+}
 
-    return overview.categories.map((item) => ({
-      ...item,
-      widthPercent: Math.max((Number(item.spent_amount || 0) / maxSpent) * 100, 4),
-    }));
-  }, [overview]);
-
-  const loading = "Ładowanie...";
-  const usagePercent = Number(overview?.budget_usage_percent || 0);
+function CategoryUsageRow({ item }) {
+  const spent = Number(item.spent_amount || 0);
+  const limit = Number(item.category_limit || 0);
+  const state = limitState(spent, limit);
 
   return (
-    <>
-      <section className="stats-grid">
-        <StatCard
-          label="Budżet miesiąca"
-          value={loadingOverview ? loading : formatMoney(overview?.total_budget)}
-        />
-        <StatCard
-          label="Wydano"
-          value={loadingOverview ? loading : formatMoney(overview?.total_spent)}
-        />
-        <StatCard
-          label="Pozostało"
-          value={loadingOverview ? loading : formatMoney(overview?.remaining_budget)}
-          danger={Number(overview?.remaining_budget || 0) < 0}
-        />
-        <StatCard
-          label="Wykorzystanie budżetu"
-          value={loadingOverview ? loading : `${usagePercent.toFixed(2)}%`}
-          danger={usagePercent > 100}
-        >
-          <ProgressBar percent={usagePercent} danger={usagePercent > 100} />
-        </StatCard>
-        <StatCard
-          label="Kategorie w miesiącu"
-          value={loadingOverview ? loading : overview?.category_count ?? 0}
-        />
-        <StatCard
-          label="Wydatki w miesiącu"
-          value={loadingOverview ? loading : overview?.expense_count ?? 0}
-        />
-      </section>
-
-      <section className="content-grid single">
-        <Panel>
-          <PanelHeader title="Wydatki per kategoria" />
-
-          {loadingOverview && <p className="muted">Ładowanie wykresu...</p>}
-
-          {!loadingOverview && chartData.length === 0 && (
-            <p className="muted">Brak danych wykresu dla wybranego miesiąca.</p>
+    <div className="usage-row">
+      <div className="usage-top">
+        <span className="usage-name">
+          {item.category_name}
+          <span className="only-desktop">
+            <LimitPill state={state} spent={spent} limit={limit} />
+          </span>
+        </span>
+        <span className="usage-amount only-desktop">
+          <b className="negative">{formatMoney(spent)}</b>
+          <span className="muted"> / {formatMoney(limit)}</span>
+        </span>
+        <span className="only-mobile">
+          {state === "ok" ? (
+            <span className="muted usage-percent">{formatPercent(item.usage_percent)}</span>
+          ) : (
+            <LimitPill state={state} spent={spent} limit={limit} mode="percent" />
           )}
+        </span>
+      </div>
+      <ProgressBar percent={item.usage_percent} state={state} label={`${item.category_name}: wykorzystanie limitu`} />
+      <div className="usage-bottom only-mobile muted">
+        <span>{formatMoney(spent)}</span>
+        <span>z {formatMoney(limit)}</span>
+      </div>
+    </div>
+  );
+}
 
-          {!loadingOverview && chartData.length > 0 && <CategoryChart items={chartData} />}
+export default function DashboardPage({ overview, loadingOverview, monthExpenses, onNavigate }) {
+  if (!overview) {
+    return <p className="muted">{loadingOverview ? "Ładowanie..." : "Brak danych dla wybranego miesiąca."}</p>;
+  }
+
+  const hasBudget = overview.budget_id !== null;
+  const usage = Number(overview.budget_usage_percent || 0);
+  const remaining = Number(overview.remaining_budget || 0);
+  const categories = overview.categories || [];
+  const exceeded = categories.filter((item) => item.is_limit_exceeded);
+  const recent = monthExpenses.slice(0, 5);
+
+  return (
+    <div className="dashboard">
+      <div className="kpis">
+        <Panel className="kpi kpi-hero">
+          <span className="kpi-label">Pozostało do wydania</span>
+          {hasBudget ? (
+            <>
+              <span className={`kpi-value ${remaining < 0 ? "exceeded-text" : "positive"}`}>
+                {formatMoney(remaining)}
+              </span>
+              <ProgressBar percent={usage} state={budgetState(usage)} label="Wykorzystanie budżetu" />
+              <span className="kpi-sub only-desktop">Wykorzystano {formatPercent(usage)} budżetu</span>
+              <span className="kpi-sub kpi-split only-mobile">
+                <span>Wydano {formatPercent(usage)}</span>
+                <span>z {formatMoney(overview.total_budget)}</span>
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="kpi-value muted">Brak budżetu</span>
+              <button type="button" className="link-btn" onClick={() => onNavigate(TABS.BUDGETS)}>
+                Ustaw budżet na ten miesiąc →
+              </button>
+            </>
+          )}
         </Panel>
 
-        <Panel>
-          <PanelHeader title="Kategorie w dashboardzie" />
+        <Panel className="kpi kpi-budget">
+          <span className="kpi-label">
+            Budżet<span className="only-desktop"> miesiąca</span>
+          </span>
+          <span className="kpi-value">{formatMoney(overview.total_budget)}</span>
+          <span className="kpi-sub only-desktop">
+            {overview.category_count} {plural(overview.category_count, "kategoria", "kategorie", "kategorii")}
+          </span>
+        </Panel>
 
-          {loadingOverview && <p className="muted">Ładowanie danych dashboardu...</p>}
+        <Panel className="kpi kpi-spent">
+          <span className="kpi-label">Wydano</span>
+          <span className="kpi-value negative">{formatMoney(overview.total_spent)}</span>
+          <span className="kpi-sub only-desktop">
+            {overview.expense_count} {plural(overview.expense_count, "wydatek", "wydatki", "wydatków")}
+          </span>
+        </Panel>
 
-          {!loadingOverview && overview && overview.categories?.length === 0 && (
-            <p className="muted">Brak danych kategorii dla wybranego miesiąca.</p>
+        <Panel className="kpi kpi-limits only-desktop">
+          <span className="kpi-label">Limity</span>
+          <span className="kpi-value">
+            {exceeded.length} / {categories.length}
+          </span>
+          {exceeded.length > 0 ? (
+            <span className="pill pill-exceeded">
+              <span aria-hidden="true">▲</span>
+              {exceeded.length} {plural(exceeded.length, "przekroczony", "przekroczone", "przekroczonych")}
+            </span>
+          ) : (
+            <span className="pill pill-neutral">
+              <span aria-hidden="true">✓</span>
+              Wszystkie w normie
+            </span>
           )}
+        </Panel>
+      </div>
 
-          {!loadingOverview && overview && overview.categories?.length > 0 && (
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Kategoria</th>
-                    <th>Limit</th>
-                    <th>Wydano</th>
-                    <th>Zostało</th>
-                    <th>Użycie</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {overview.categories.map((item) => (
-                    <tr key={item.category_id}>
-                      <td>{item.category_name}</td>
-                      <td>{formatMoney(item.category_limit)}</td>
-                      <td>{formatMoney(item.spent_amount)}</td>
-                      <td className={item.is_limit_exceeded ? "danger-text semibold" : ""}>
-                        {formatMoney(item.remaining_amount)}
-                      </td>
-                      <td className={item.is_limit_exceeded ? "danger-text semibold" : ""}>
-                        {Number(item.usage_percent).toFixed(2)}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {exceeded.length > 0 && (
+        <div className="alerts only-mobile">
+          {exceeded.map((item) => (
+            <div key={item.category_id} className="alert-row">
+              <span aria-hidden="true">▲</span>
+              {item.category_name}: limit przekroczony o {formatMoney(item.spent_amount - item.category_limit)}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="dash-cols">
+        <Panel className="section">
+          <PanelHeader
+            title="Kategorie"
+            action={<span className="pill pill-neutral only-desktop">Wydano / limit</span>}
+          />
+          {categories.length === 0 ? (
+            <div className="empty">
+              <p className="muted">Brak kategorii w tym miesiącu.</p>
+              <button type="button" className="link-btn" onClick={() => onNavigate(TABS.CATEGORIES)}>
+                Dodaj kategorię →
+              </button>
+            </div>
+          ) : (
+            <div className="usage-list">
+              {categories.map((item) => (
+                <CategoryUsageRow key={item.category_id} item={item} />
+              ))}
             </div>
           )}
         </Panel>
-      </section>
-    </>
+
+        <Panel className="section">
+          <PanelHeader
+            title="Ostatnie wydatki"
+            action={
+              <button type="button" className="link-btn" onClick={() => onNavigate(TABS.EXPENSES)}>
+                Wszystkie →
+              </button>
+            }
+          />
+          {recent.length === 0 ? (
+            <p className="muted">Brak wydatków w tym miesiącu.</p>
+          ) : (
+            <div className="expense-list">
+              {recent.map((expense) => (
+                <ExpenseRow key={expense.id} expense={expense} />
+              ))}
+            </div>
+          )}
+        </Panel>
+      </div>
+    </div>
   );
 }

@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createExpense, deleteExpense, updateExpense } from "../api";
-import { DEFAULT_MONTH, TABS } from "../constants";
-import { validateExpenseForm } from "../utils/validation";
+import { TABS } from "../constants";
+import { defaultExpenseDate } from "../utils/month";
+import { getLimitWarning, validateExpenseForm } from "../utils/validation";
 
 // Add / edit / delete expense. State lives above the tabs, so it survives tab switches.
 export function useExpenseForms({ data, messages, selectedMonth, setActiveTab }) {
   const [expenseCategoryId, setExpenseCategoryId] = useState("");
   const [expenseName, setExpenseName] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
-  const [expenseDate, setExpenseDate] = useState(DEFAULT_MONTH);
+  const [expenseDate, setExpenseDate] = useState(defaultExpenseDate(selectedMonth));
   const [expenseNotes, setExpenseNotes] = useState("");
 
   const [editingExpenseId, setEditingExpenseId] = useState(null);
@@ -18,12 +19,26 @@ export function useExpenseForms({ data, messages, selectedMonth, setActiveTab })
   const [editingExpenseDate, setEditingExpenseDate] = useState("");
   const [editingExpenseNotes, setEditingExpenseNotes] = useState("");
 
+  // New expenses default to a date inside the month currently shown.
+  useEffect(() => {
+    setExpenseDate(defaultExpenseDate(selectedMonth));
+  }, [selectedMonth]);
+
   const { clearMessages, setExpenseFormMessage, setDeleteMessage, setEditMessage } = messages;
-  const validationContext = {
-    categories: data.categories,
-    expenses: data.expenses,
-    selectedMonth,
-  };
+  const validationContext = { categories: data.categories };
+
+  // Spending over a category limit is allowed; the forms show this warning before saving.
+  const addWarning = getLimitWarning(
+    { categories: data.categories, expenses: data.expenses, selectedMonth: expenseDate || selectedMonth },
+    expenseCategoryId,
+    expenseAmount,
+  );
+  const editWarning = getLimitWarning(
+    { categories: data.categories, expenses: data.expenses, selectedMonth: editingExpenseDate || selectedMonth },
+    editingExpenseCategoryId,
+    editingExpenseAmount,
+    editingExpenseId,
+  );
 
   const handleCreateExpense = async (event) => {
     event.preventDefault();
@@ -53,7 +68,7 @@ export function useExpenseForms({ data, messages, selectedMonth, setActiveTab })
       setExpenseCategoryId("");
       setExpenseName("");
       setExpenseAmount("");
-      setExpenseDate(DEFAULT_MONTH);
+      setExpenseDate(defaultExpenseDate(selectedMonth));
       setExpenseNotes("");
       setExpenseFormMessage("Wydatek został dodany.");
       await data.loadExpenses();
@@ -109,7 +124,6 @@ export function useExpenseForms({ data, messages, selectedMonth, setActiveTab })
       editingExpenseName,
       editingExpenseAmount,
       editingExpenseDate,
-      editingExpenseId,
     );
     if (validationError) {
       setEditMessage(validationError);
@@ -161,5 +175,7 @@ export function useExpenseForms({ data, messages, selectedMonth, setActiveTab })
     startExpenseEdit,
     cancelExpenseEdit,
     handleUpdateExpense,
+    addWarning,
+    editWarning,
   };
 }

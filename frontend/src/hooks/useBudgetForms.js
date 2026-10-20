@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createBudget, deleteBudget, updateBudget } from "../api";
-import { DEFAULT_MONTH, TABS } from "../constants";
+import { TABS } from "../constants";
 import { validateBudgetForm } from "../utils/validation";
 
 // Add / edit / delete budget. State lives above the tabs, so it survives tab switches.
 export function useBudgetForms({ data, messages, selectedMonth, setActiveTab }) {
-  const [budgetMonth, setBudgetMonth] = useState(DEFAULT_MONTH);
+  const [budgetMonth, setBudgetMonth] = useState(selectedMonth);
+
+  // New entries default to the month currently shown.
+  useEffect(() => {
+    setBudgetMonth(selectedMonth);
+  }, [selectedMonth]);
   const [budgetAmount, setBudgetAmount] = useState("");
 
   const [editingBudgetId, setEditingBudgetId] = useState(null);
