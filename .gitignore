@@ -10,11 +10,11 @@ venv/
 .coverage
 htmlcov/
 
-# Environment files
+# Environment files (only .env.example files are committed)
 .env
-.env.local
-backend/.env
-frontend/.env
+.env.*
+*.env
+!.env.example
 
 # Node / frontend
 frontend/node_modules/

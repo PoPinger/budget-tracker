@@ -7,10 +7,11 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from backend.app.core.config import settings
 from backend.app.core.db import get_db
 from backend.app.models.user import User
 
-SECRET_KEY = "change-this-in-production"
+SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 

@@ -2,19 +2,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api.v1.router import api_router
+from backend.app.core.config import settings
 
 app = FastAPI(
     title="Budget Tracker API",
     version="1.0.0"
 )
 
-# ✅ CORS (BARDZO WAŻNE dla frontendu)
+# ✅ CORS: tylko frontend z FRONTEND_URL (+ localhost poza produkcją).
+# Token JWT idzie w nagłówku Authorization, a nie w cookies, więc credentials są wyłączone.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # na start OK (potem można zawęzić)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # ✅ Router API
