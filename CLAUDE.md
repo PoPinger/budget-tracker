@@ -19,7 +19,7 @@ Budget Tracker: a Polish-language web app for controlling monthly spending. A us
 |---|---|---|
 | `backend/` | FastAPI, SQLAlchemy 2, Alembic, PostgreSQL (psycopg 3), Pydantic v2 + pydantic-settings, JWT auth (python-jose, passlib pbkdf2_sha256) | Render (web service; no `render.yaml` in the repo, configured in the Render dashboard) |
 | `frontend/` | React 19, Vite 8, plain JS in the live app (`App.jsx`); TypeScript tooling present | Vercel: https://budget-tracker-pi-neon.vercel.app |
-| Database | PostgreSQL | **Status unknown, to be checked.** Probably Render Postgres; free Render databases expire, so it may be gone. |
+| Database | PostgreSQL | Neon. Before risky migrations, create a Neon backup branch (e.g. `backup-before-migration`). |
 
 There is no staging. Pushing to `main` may deploy to production if auto-deploy is on.
 
@@ -80,7 +80,9 @@ DATABASE_URL=postgresql+psycopg://u:p@localhost/x python -c "import backend.app.
 
 - Run from the repo root: `alembic upgrade head`. `env.py` reads `DATABASE_URL`; `alembic.ini` has no URL.
 - New migration: `alembic revision --autogenerate -m "short description"`, then **review the generated file by hand** before committing.
-- `alembic check` must report no differences between models and migrations. Today it reports 13 (see Known issues).
+- `alembic check` must report no differences between models and migrations (clean since `align_schema_with_models`).
+- Production runs `alembic upgrade head` on startup (configured in the Render dashboard), so a pushed migration runs on production. Test it locally on an empty DB and on a production-like DB first.
+- Migrations must be safe on existing data: inspect the current schema before each step (production was partly fixed by hand) and abort with a clear message instead of deleting data.
 - Never edit a migration that has already run in production; add a new one.
 
 ## Security
@@ -142,13 +144,13 @@ Warning and exceeded states are never shown by color alone: also use a pill with
 ## Known issues (TODO)
 
 Backend / database:
-- [ ] **Adding an expense returns 500 on a fresh DB**: `expenses.title` is still `NOT NULL` because migration `fix_expenses_title_to_name` is a no-op (`pass`). Production may have been fixed by hand; check.
-- [ ] Unique constraint `uq_categories_month_name` on `(month, name)` is global, not per user: a second user cannot create a category name another user already has for that month (500).
-- [ ] `alembic check` reports 13 diffs: timestamps without time zone vs `DateTime(timezone=True)`, `categories.name` 100 vs 255, missing `ix_*_month` / `ix_expenses_expense_date` indexes, leftover `expenses.title`, unique constraints not declared on models.
+- [x] ~~Adding an expense returns 500 on a fresh DB (leftover `expenses.title NOT NULL`)~~: column dropped in `align_schema_with_models` (on production it had already been dropped by hand).
+- [x] ~~Category names unique across all users~~: now `uq_categories_user_id_month_name` on `(user_id, month, name)`.
+- [x] ~~`alembic check` reported 13 diffs~~: fixed by `align_schema_with_models`; now clean.
 - [ ] Legacy migration inserts a placeholder user `legacy-user@example.com` (id 1) with an invalid password hash.
-- [ ] Unique-violation and integrity errors surface as 500 instead of 409/400.
+- [x] ~~Duplicate category / budget returned 500~~: create and update now return 409 (pre-check plus the DB constraint for concurrent requests).
 - [ ] `/api/v1/db-test/db-test` endpoint is public and unauthenticated; remove or protect it.
-- [ ] Production DB status unknown (exists? data? migrations at head?).
+- [x] ~~Production DB status unknown~~: Neon PostgreSQL (backup branch `backup-before-migration`).
 
 Frontend:
 - [ ] Two parallel frontends: live `App.jsx` (JS monolith) and unused TS router pages (`App.tsx`, `pages/*Page.tsx`, `api/*.ts`, `components/layout/*`). Remove the dead code.
