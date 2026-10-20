@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { login, register } from "./api";
-import { saveAuth } from "./auth";
+import { login, register } from "../api";
+import { saveAuth } from "../auth";
 
-export default function Login({ onAuthSuccess }) {
+export default function LoginPage({ onAuthSuccess }) {
   const [mode, setMode] = useState("login");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,8 +40,6 @@ export default function Login({ onAuthSuccess }) {
 
   return (
     <div className="auth-shell">
-      <div className="bg-orb bg-orb-1" />
-      <div className="bg-orb bg-orb-2" />
 
       <div className="auth-grid">
         <div className="auth-copy">

@@ -18,7 +18,7 @@ Budget Tracker: a Polish-language web app for controlling monthly spending. A us
 | Part | Stack | Deploy |
 |---|---|---|
 | `backend/` | FastAPI, SQLAlchemy 2, Alembic, PostgreSQL (psycopg 3), Pydantic v2 + pydantic-settings, JWT auth (python-jose, passlib pbkdf2_sha256) | Render (web service; no `render.yaml` in the repo, configured in the Render dashboard) |
-| `frontend/` | React 19, Vite 8, plain JS (`App.jsx`); only the entry `main.tsx` is TypeScript | Vercel: https://budget-tracker-pi-neon.vercel.app |
+| `frontend/` | React 19, Vite 8, plain JS (`.jsx`); only the entry `main.tsx` is TypeScript | Vercel: https://budget-tracker-pi-neon.vercel.app |
 | Database | PostgreSQL | Neon. Before risky migrations, create a Neon backup branch (e.g. `backup-before-migration`). |
 
 There is no staging. Pushing to `main` may deploy to production if auto-deploy is on.
@@ -40,12 +40,20 @@ backend/
   app/api/v1/endpoints/        # auth, budgets, categories, expenses, stats, health
 frontend/
   src/main.tsx                 # entry: renders App.jsx
-  src/App.jsx                  # the app: one ~1300-line component, tabs via local state
-  src/Login.jsx, api.js, auth.js  # login screen, fetch client, token storage (localStorage)
-  src/index.css                # all styles
+  src/App.jsx                  # auth gate + layout + tab switching; calls all state hooks
+  src/constants.js             # TABS, DEFAULT_MONTH
+  src/api.js, auth.js          # fetch client, token storage (localStorage)
+  src/hooks/                   # useBudgetData (server data + loaders), useMessages,
+                               # useCategoryForms / useBudgetForms / useExpenseForms (form state + handlers)
+  src/pages/                   # LoginPage, DashboardPage, CategoriesPage, BudgetsPage, ExpensesPage (render only)
+  src/components/              # AppHeader, TabBar, MonthPicker, Banner, Notice, Panel, StatCard, ProgressBar, CategoryChart
+  src/utils/                   # format.js (formatMoney), budget.js (spent per category), validation.js
+  src/index.css                # all styles; Graphite Volt variables in :root
   public/icons/logo.png        # original logo (white background); UI uses icons/logo-transparent.png (256x256)
   public/favicon-32.png, apple-touch-icon.png  # generated from the logo
 ```
+
+State rule: all app state lives in hooks called by `App.jsx`, not inside pages, so form input and open edit forms survive tab switches. Pages only render.
 
 API base path: `/api/v1`. Auth is a Bearer token in the `Authorization` header (no cookies).
 
@@ -163,7 +171,7 @@ Frontend:
 - [ ] Tables are cut off on mobile.
 - [ ] Success/error notices are detected by substring matching on Polish messages ("dodany", "zosta").
 - [x] ~~`index.html` title is "frontend" and `lang="en"`~~: now "Budget Tracker", `lang="pl"`, PNG favicons.
-- [ ] The whole UI uses the old navy/blue theme; replace it with Graphite Volt.
+- [x] ~~Old navy/blue theme~~: all colors now come from the Graphite Volt variables (layout redesign still to do).
 
 Product / tooling:
 - [ ] No income concept (only budget and expenses).
