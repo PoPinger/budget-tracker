@@ -18,7 +18,7 @@ Budget Tracker: a Polish-language web app for controlling monthly spending. A us
 | Part | Stack | Deploy |
 |---|---|---|
 | `backend/` | FastAPI, SQLAlchemy 2, Alembic, PostgreSQL (psycopg 3), Pydantic v2 + pydantic-settings, JWT auth (python-jose, passlib pbkdf2_sha256) | Render (web service; no `render.yaml` in the repo, configured in the Render dashboard) |
-| `frontend/` | React 19, Vite 8, plain JS in the live app (`App.jsx`); TypeScript tooling present | Vercel: https://budget-tracker-pi-neon.vercel.app |
+| `frontend/` | React 19, Vite 8, plain JS (`App.jsx`); only the entry `main.tsx` is TypeScript | Vercel: https://budget-tracker-pi-neon.vercel.app |
 | Database | PostgreSQL | Neon. Before risky migrations, create a Neon backup branch (e.g. `backup-before-migration`). |
 
 There is no staging. Pushing to `main` may deploy to production if auto-deploy is on.
@@ -29,7 +29,7 @@ There is no staging. Pushing to `main` may deploy to production if auto-deploy i
 alembic.ini                    # Alembic config (repo root); DB URL comes from env, not from this file
 backend/
   alembic/env.py               # uses settings.database_url
-  alembic/versions/            # 7 hand-written migrations in one linear chain
+  alembic/versions/            # hand-written migrations in one linear chain
   app/main.py                  # FastAPI app, CORS, mounts /api/v1
   app/core/config.py           # Settings (env / backend/.env): DATABASE_URL, SECRET_KEY, FRONTEND_URL, APP_ENV
   app/core/security.py         # password hashing, JWT, get_current_user
@@ -37,15 +37,14 @@ backend/
   app/models/                  # User, Budget, Category, Expense
   app/schemas/                 # Pydantic schemas
   app/services/                # business logic (budget, category, expense, stats, auth)
-  app/api/v1/endpoints/        # auth, budgets, categories, expenses, stats, health, db_test
+  app/api/v1/endpoints/        # auth, budgets, categories, expenses, stats, health
 frontend/
   src/main.tsx                 # entry: renders App.jsx
-  src/App.jsx                  # THE live app: one ~1300-line component, tabs via local state
-  src/Login.jsx, api.js, auth.js  # live login screen, fetch client, token storage (localStorage)
-  src/index.css, App.css       # styles (old navy/blue theme, to be replaced by Graphite Volt)
+  src/App.jsx                  # the app: one ~1300-line component, tabs via local state
+  src/Login.jsx, api.js, auth.js  # login screen, fetch client, token storage (localStorage)
+  src/index.css                # all styles
   public/icons/logo.png        # original logo (white background); UI uses icons/logo-transparent.png (256x256)
   public/favicon-32.png, apple-touch-icon.png  # generated from the logo
-  src/App.tsx, pages/*Page.tsx, api/*.ts, components/layout/*, types/*, utils/*  # DEAD CODE, not imported
 ```
 
 API base path: `/api/v1`. Auth is a Bearer token in the `Authorization` header (no cookies).
@@ -151,11 +150,11 @@ Backend / database:
 - [x] ~~`alembic check` reported 13 diffs~~: fixed by `align_schema_with_models`; now clean.
 - [ ] Legacy migration inserts a placeholder user `legacy-user@example.com` (id 1) with an invalid password hash.
 - [x] ~~Duplicate category / budget returned 500~~: create and update now return 409 (pre-check plus the DB constraint for concurrent requests).
-- [ ] `/api/v1/db-test/db-test` endpoint is public and unauthenticated; remove or protect it.
+- [x] ~~Public `/api/v1/db-test/db-test` endpoint~~: removed.
 - [x] ~~Production DB status unknown~~: Neon PostgreSQL (backup branch `backup-before-migration`).
 
 Frontend:
-- [ ] Two parallel frontends: live `App.jsx` (JS monolith) and unused TS router pages (`App.tsx`, `pages/*Page.tsx`, `api/*.ts`, `components/layout/*`). Remove the dead code.
+- [x] ~~Unused TS router pages, `api/*.ts`, layout, `App.css`, template assets~~: removed, along with `react-router-dom`.
 - [ ] Selected month is hardcoded to `2026-04-01`; the dashboard is empty after login.
 - [ ] Month picker is a full date input; any day other than the 1st shows no data (backend matches `month` exactly).
 - [ ] The expense category dropdown lists categories from all months.
@@ -169,4 +168,4 @@ Frontend:
 Product / tooling:
 - [ ] No income concept (only budget and expenses).
 - [ ] No tests, no CI, no lint step.
-- [ ] README local-setup section is truncated and Windows-only.
+- [x] ~~README local-setup section truncated and Windows-only~~: rewritten for Windows and macOS/Linux.
