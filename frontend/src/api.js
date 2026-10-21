@@ -2,6 +2,41 @@ import { getToken } from "./auth";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
+// Pydantic's built-in messages are English; these replace them. Our own messages
+// (e.g. "Kwota jest za duża.") are already Polish and are shown as they are.
+const VALIDATION_MESSAGES = {
+  greater_than: "Kwota musi być większa od 0.",
+  greater_than_equal: "Kwota nie może być ujemna.",
+  string_too_short: "Tekst jest za krótki.",
+  string_too_long: "Tekst jest za długi.",
+  missing: "Uzupełnij wszystkie wymagane pola.",
+  float_parsing: "Podaj poprawną kwotę.",
+  float_type: "Podaj poprawną kwotę.",
+};
+// Types raised with PydanticCustomError in backend/app/schemas (their messages are Polish).
+const CUSTOM_ERROR_TYPES = new Set(["amount_too_large"]);
+const DEFAULT_VALIDATION_MESSAGE = "Nieprawidłowe dane.";
+
+function validationItemMessage(item) {
+  if (CUSTOM_ERROR_TYPES.has(item.type)) return item.msg;
+  if (item.type === "value_error") {
+    // EmailStr raises an English value_error; our own validators raise Polish ones.
+    if (item.loc?.includes("email")) return "Podaj poprawny adres e-mail.";
+    return String(item.msg || "").replace(/^Value error, /, "") || DEFAULT_VALIDATION_MESSAGE;
+  }
+  return VALIDATION_MESSAGES[item.type] || DEFAULT_VALIDATION_MESSAGE;
+}
+
+// FastAPI 422: detail is a list of {type, loc, msg}; join the unique Polish messages.
+function formatErrorDetail(detail) {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = [...new Set(detail.map(validationItemMessage))];
+    return messages.join(" ") || DEFAULT_VALIDATION_MESSAGE;
+  }
+  return DEFAULT_VALIDATION_MESSAGE;
+}
+
 async function apiRequest(path, options = {}) {
   const token = getToken();
 
@@ -26,10 +61,7 @@ async function apiRequest(path, options = {}) {
       const errorData = await response.json();
 
       if (errorData.detail) {
-        errorMessage =
-          typeof errorData.detail === "string"
-            ? errorData.detail
-            : JSON.stringify(errorData.detail);
+        errorMessage = formatErrorDetail(errorData.detail);
       }
     } catch {
       errorMessage = response.statusText || errorMessage;
@@ -133,4 +165,25 @@ export async function deleteExpense(expenseId) {
 
 export async function getMonthOverview(month) {
   return apiRequest(`/stats/month-overview?month=${month}`);
+}
+
+export async function getMonth(month) {
+  return apiRequest(`/months/${month}`);
+}
+
+export async function getPreviousMonth(month) {
+  return apiRequest(`/months/${month}/previous`);
+}
+
+export async function setupMonth(data) {
+  return apiRequest("/months/setup", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function reopenMonth(month) {
+  return apiRequest(`/months/${month}/reopen`, {
+    method: "POST",
+  });
 }

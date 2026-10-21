@@ -47,7 +47,8 @@ function CategoryUsageRow({ item }) {
   );
 }
 
-export default function DashboardPage({ overview, loadingOverview, monthExpenses, onNavigate }) {
+// readOnly (closed month): same summary without links to editing.
+export default function DashboardPage({ overview, loadingOverview, monthExpenses, onNavigate, readOnly = false }) {
   if (!overview) {
     return <p className="muted">{loadingOverview ? "Ładowanie..." : "Brak danych dla wybranego miesiąca."}</p>;
   }
@@ -79,9 +80,11 @@ export default function DashboardPage({ overview, loadingOverview, monthExpenses
           ) : (
             <>
               <span className="kpi-value muted">Brak budżetu</span>
-              <button type="button" className="link-btn" onClick={() => onNavigate(TABS.BUDGETS)}>
-                Ustaw budżet na ten miesiąc →
-              </button>
+              {!readOnly && (
+                <button type="button" className="link-btn" onClick={() => onNavigate(TABS.BUDGETS)}>
+                  Ustaw budżet na ten miesiąc →
+                </button>
+              )}
             </>
           )}
         </Panel>
@@ -143,9 +146,11 @@ export default function DashboardPage({ overview, loadingOverview, monthExpenses
           {categories.length === 0 ? (
             <div className="empty">
               <p className="muted">Brak kategorii w tym miesiącu.</p>
-              <button type="button" className="link-btn" onClick={() => onNavigate(TABS.CATEGORIES)}>
-                Dodaj kategorię →
-              </button>
+              {!readOnly && (
+                <button type="button" className="link-btn" onClick={() => onNavigate(TABS.CATEGORIES)}>
+                  Dodaj kategorię →
+                </button>
+              )}
             </div>
           ) : (
             <div className="usage-list">

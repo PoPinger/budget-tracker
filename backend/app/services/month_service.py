@@ -47,6 +47,16 @@ def get_month_or_404(db: Session, month: date, current_user: User) -> Month:
     return month_row
 
 
+CLOSED_MONTH_DETAIL = "Miesiąc jest zamknięty. Otwórz go ponownie, aby wprowadzić zmiany."
+
+
+def ensure_month_open(db: Session, month: date, current_user: User) -> None:
+    """Zamknięty miesiąc jest tylko do odczytu: każda zmiana jego danych kończy się 409."""
+    month_row = get_month(db, month, current_user)
+    if month_row is not None and month_row.status == MONTH_STATUS_CLOSED:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=CLOSED_MONTH_DETAIL)
+
+
 def ensure_month_started(db: Session, month: date, current_user: User) -> None:
     # Dane dodane starym formularzem (budżet, kategoria, wydatek) też rozpoczynają miesiąc.
     # ON CONFLICT, bo dwa równoległe żądania mogą chcieć utworzyć ten sam wiersz.
@@ -106,6 +116,7 @@ def reopen_month(db: Session, month: date, current_user: User) -> MonthResponse:
 
 def update_salary(db: Session, month: date, salary: float, current_user: User) -> MonthResponse:
     month_row = get_month_or_404(db, month, current_user)
+    ensure_month_open(db, month, current_user)
     month_row.salary = salary
     db.commit()
     return build_month_response(db, month, current_user)

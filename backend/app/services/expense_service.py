@@ -8,7 +8,7 @@ from backend.app.models.category import Category
 from backend.app.models.expense import Expense
 from backend.app.models.user import User
 from backend.app.schemas.expense import ExpenseCreate, ExpenseUpdate
-from backend.app.services.month_service import ensure_month_started
+from backend.app.services.month_service import ensure_month_open, ensure_month_started
 
 
 def _get_user_category_or_404(db: Session, category_id: int, current_user: User) -> Category:
@@ -71,6 +71,7 @@ def get_expense_or_404(db: Session, expense_id: int, current_user: User) -> Expe
 
 def create_expense(db: Session, payload: ExpenseCreate, current_user: User) -> Expense:
     _get_user_category_or_404(db, payload.category_id, current_user)
+    ensure_month_open(db, payload.expense_date, current_user)
 
     expense = Expense(
         user_id=current_user.id,
@@ -96,6 +97,9 @@ def update_expense(
     current_user: User,
 ) -> Expense:
     expense = get_expense_or_404(db, expense_id, current_user)
+    ensure_month_open(db, expense.expense_date, current_user)
+    if payload.expense_date is not None:
+        ensure_month_open(db, payload.expense_date, current_user)
 
     if payload.category_id is not None:
         _get_user_category_or_404(db, payload.category_id, current_user)
@@ -119,6 +123,7 @@ def update_expense(
 
 def delete_expense(db: Session, expense_id: int, current_user: User) -> None:
     expense = get_expense_or_404(db, expense_id, current_user)
+    ensure_month_open(db, expense.expense_date, current_user)
     db.delete(expense)
     db.commit()
 

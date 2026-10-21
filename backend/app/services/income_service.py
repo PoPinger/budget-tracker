@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from backend.app.models.income import Income
 from backend.app.models.user import User
 from backend.app.schemas.income import IncomeCreate, IncomeUpdate
-from backend.app.services.month_service import first_of_month
+from backend.app.services.month_service import ensure_month_open, first_of_month
 
 
 def list_incomes(db: Session, current_user: User, month: date | None = None) -> list[Income]:
@@ -38,6 +38,7 @@ def get_income_or_404(db: Session, income_id: int, current_user: User) -> Income
 
 def create_income(db: Session, payload: IncomeCreate, current_user: User) -> Income:
     # Miesiąc przychodu wynika z jego daty, więc data zawsze należy do miesiąca.
+    ensure_month_open(db, payload.income_date, current_user)
     income = Income(
         user_id=current_user.id,
         month=first_of_month(payload.income_date),
@@ -53,6 +54,9 @@ def create_income(db: Session, payload: IncomeCreate, current_user: User) -> Inc
 
 def update_income(db: Session, income_id: int, payload: IncomeUpdate, current_user: User) -> Income:
     income = get_income_or_404(db, income_id, current_user)
+    ensure_month_open(db, income.month, current_user)
+    if payload.income_date is not None:
+        ensure_month_open(db, payload.income_date, current_user)
 
     if payload.name is not None:
         income.name = payload.name.strip()
@@ -69,5 +73,6 @@ def update_income(db: Session, income_id: int, payload: IncomeUpdate, current_us
 
 def delete_income(db: Session, income_id: int, current_user: User) -> None:
     income = get_income_or_404(db, income_id, current_user)
+    ensure_month_open(db, income.month, current_user)
     db.delete(income)
     db.commit()

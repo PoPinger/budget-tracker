@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.app.models.budget import Budget
 from backend.app.models.user import User
 from backend.app.schemas.budget import BudgetCreate, BudgetUpdate
-from backend.app.services.month_service import ensure_month_started
+from backend.app.services.month_service import ensure_month_open, ensure_month_started
 
 DUPLICATE_BUDGET_DETAIL = "Budżet dla tego miesiąca już istnieje."
 BUDGET_UNIQUE_CONSTRAINT = "uq_budgets_user_id_month"
@@ -92,6 +92,7 @@ def get_budget_by_month_or_404(db: Session, month: date, current_user: User) -> 
 
 
 def create_budget(db: Session, payload: BudgetCreate, current_user: User) -> Budget:
+    ensure_month_open(db, payload.month, current_user)
     _ensure_month_available(db, current_user, payload.month)
 
     budget = Budget(
@@ -114,8 +115,10 @@ def update_budget(
     current_user: User,
 ) -> Budget:
     budget = get_budget_or_404(db, budget_id, current_user)
+    ensure_month_open(db, budget.month, current_user)
 
     if payload.month is not None:
+        ensure_month_open(db, payload.month, current_user)
         _ensure_month_available(db, current_user, payload.month, exclude_budget_id=budget.id)
         budget.month = payload.month
         ensure_month_started(db, payload.month, current_user)
@@ -129,5 +132,6 @@ def update_budget(
 
 def delete_budget(db: Session, budget_id: int, current_user: User) -> None:
     budget = get_budget_or_404(db, budget_id, current_user)
+    ensure_month_open(db, budget.month, current_user)
     db.delete(budget)
     db.commit()

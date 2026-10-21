@@ -851,6 +851,242 @@ p {
   resize: vertical;
 }
 
+.btn-lg {
+  min-height: 48px;
+  padding: 12px 20px;
+  font-size: 15px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.icon-btn:hover {
+  background: var(--color-secondary);
+  color: var(--color-text);
+}
+
+.input-lg {
+  min-height: 50px;
+  font-size: 17px;
+}
+
+.amount-input {
+  position: relative;
+}
+
+.amount-input .input {
+  padding-right: 40px;
+}
+
+.amount-suffix {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14.5px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primary);
+}
+
+/* ---------- Month states ---------- */
+
+.month-empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 560px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.month-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.month-empty-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.month-empty .muted {
+  margin: 0 0 8px;
+}
+
+.month-closed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.month-closed-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.month-closed-sub {
+  display: block;
+  font-size: 13px;
+}
+
+/* ---------- Month setup wizard ---------- */
+
+.setup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  max-width: 640px;
+}
+
+/* Long labels ("Skopiuj kategorie i limity...") wrap instead of widening the card. */
+.setup .btn-block {
+  white-space: normal;
+  text-align: center;
+}
+
+.setup-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.setup-head .stepper {
+  flex: 1;
+}
+
+.setup-title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.setup-form > .muted {
+  margin: 0;
+}
+
+.stepper {
+  display: grid;
+  gap: 8px;
+}
+
+.stepper-segments {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepper-segment {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
+.stepper-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-track);
+}
+
+.stepper-segment.done .stepper-bar {
+  background: var(--color-primary);
+}
+
+.stepper-segment[aria-current="step"] {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.setup-categories {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-category {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+.setup-category-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 10px;
+}
+
+.setup-category-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setup-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.setup-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 10px;
+  margin-top: 6px;
+}
+
 /* ---------- Budget page ---------- */
 
 .budget-page {
@@ -1062,6 +1298,37 @@ p {
 
   .mobile-header .page-title {
     font-size: 23px;
+  }
+
+  /* Wizard: one step per screen, "Wstecz" / "Dalej" fixed at the bottom (bottom nav is hidden). */
+  .setup {
+    padding: 16px;
+  }
+
+  /* Focused / scrolled-to fields stay above the fixed action bar. */
+  html:has(.setup-actions) {
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .setup-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .month-empty {
+    padding: 28px 18px;
+  }
+
+  .month-empty .btn {
+    width: 100%;
   }
 
   .mobile-header-actions {
@@ -1284,6 +1551,10 @@ p {
 
 @media (max-width: 380px) {
   .field-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .setup-category-fields {
     grid-template-columns: minmax(0, 1fr);
   }
 }

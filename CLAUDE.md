@@ -44,10 +44,11 @@ frontend/
   src/App.jsx                  # auth gate + layout (sidebar / bottom nav) + tab switching; calls all state hooks
   src/constants.js             # TABS, NAV_ITEMS (Pulpit, Wydatki, Kategorie, Budżet)
   src/api.js, auth.js          # fetch client, token storage (localStorage)
-  src/hooks/                   # useBudgetData (server data + loaders), useMessages,
+  src/hooks/                   # useBudgetData (server data + loaders), useMessages, useMonthSetup (wizard),
                                # useCategoryForms / useBudgetForms / useExpenseForms (form state + handlers)
-  src/pages/                   # LoginPage, DashboardPage, CategoriesPage, BudgetsPage, ExpensesPage (render only)
-  src/components/              # AppLoader (full-screen loader), BrandName (two-tone "Budget Tracker"),
+  src/pages/                   # LoginPage, DashboardPage, MonthSetupPage, CategoriesPage, BudgetsPage, ExpensesPage (render only)
+  src/components/              # MonthEmptyState, MonthClosedNotice, Stepper (month flow),
+                               # AppLoader (full-screen loader), BrandName (two-tone "Budget Tracker"),
                                # Sidebar (desktop), BottomNav (mobile), PageHeader, MonthSwitcher, AccountMenu,
                                # Panel (card), ProgressBar, LimitPill, ExpenseRow, RowActions, Notice, Banner, MonthInput, NavIcon
   src/utils/                   # format.js (money/percent/date/month names, Polish plurals), month.js,
@@ -65,8 +66,15 @@ Month flow data (stage 1):
 - `months`: one row per started month (`user_id`, `month`, `salary` nullable, `status` `active`/`closed`, `closed_at`). No row = not started. Creating a budget, category or expense through the old endpoints also starts the month (`ensure_month_started`).
 - `incomes`: extra incomes; `month` is derived from `income_date`.
 - `categories.is_recurring`: a recurring category has exactly one auto-created expense with `expenses.is_recurring = true` (partial unique index `uq_expenses_recurring_category_id`). `sync_recurring_expense` keeps its amount equal to the limit and removes it when the flag is turned off.
-- Endpoints: `GET /months/{month}`, `POST /months/setup` (salary + budget + categories + recurring expenses in one transaction, 409 if the month is already started), `GET /months/{month}/previous` (data to copy), `POST /months/{month}/close`, `POST /months/{month}/reopen`, `PUT /months/{month}/salary`, CRUD `/incomes` (`?month=`). Closed months are not yet read-only on the backend.
+- Endpoints: `GET /months/{month}`, `POST /months/setup` (salary + budget + categories + recurring expenses in one transaction, 409 if the month is already started), `GET /months/{month}/previous` (data to copy), `POST /months/{month}/close`, `POST /months/{month}/reopen`, `PUT /months/{month}/salary`, CRUD `/incomes` (`?month=`).
+- Closed months are read-only: every create/update/delete of a budget, category, expense, income or salary in a closed month (including moving data into or out of one) returns 409 "Miesiąc jest zamknięty. Otwórz go ponownie, aby wprowadzić zmiany." (`ensure_month_open` in `month_service`).
 - Frontend: `AppLoader` is shown until the first `loadAllData` finishes (`useBudgetData().initialLoading`).
+
+Month flow frontend (stage 2):
+- `useBudgetData().month` holds the selected month's state; `loadOverview` always reloads it too (old forms can start a month).
+- Pulpit by status: `not_started` -> `MonthEmptyState` ("Zacznij kontrolę budżetu"); `active` -> dashboard; `closed` -> `MonthClosedNotice` ("Otwórz ponownie") + read-only dashboard. "Ustaw budżet / Dodaj wydatek" and the mobile "+" are shown only in an active month.
+- Setup wizard: `useMonthSetup` (state, per-step validation, copy from previous month, save) + `pages/MonthSetupPage.jsx` + `components/Stepper.jsx`. Amounts are text inputs with `inputmode="decimal"`, parsed by `parseAmount` (comma accepted). On mobile the bottom nav is hidden and "Wstecz / Dalej" is fixed at the bottom.
+- `api.js` turns FastAPI 422 lists into Polish text: custom messages (e.g. "Kwota jest za duża.") as they are, `value_error` without the "Value error, " prefix, built-in pydantic errors mapped to Polish (`VALIDATION_MESSAGES`). Add new `PydanticCustomError` types to `CUSTOM_ERROR_TYPES`.
 
 ## Running locally
 
@@ -166,7 +174,7 @@ Warning and exceeded states are never shown by color alone: also use a pill with
 Spec: [`docs/month-flow-spec.md`](docs/month-flow-spec.md) (month states, setup wizard, "Mój miesiąc" dashboard, salary/extra incomes, savings goal, recurring expenses, loading screen, mobile-first). Done in 3 stages; update this file after each one.
 
 - [x] Stage 1: backend + migration (`month_flow`), loading screen
-- [ ] Stage 2: month states + setup wizard
+- [x] Stage 2: month states + setup wizard (+ closed months read-only on the backend)
 - [ ] Stage 3: dashboard, recurring expenses, extra incomes, navigation, mobile polish, manifest
 
 ## Known issues (TODO)

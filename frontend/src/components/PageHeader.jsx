@@ -11,9 +11,9 @@ const OVERLINE = {
   [TABS.BUDGETS]: "Budżet miesiąca",
 };
 
-// Desktop: overline + month title, month switcher and actions.
+// Desktop: overline + month title, month switcher and actions (only in an active month).
 // Mobile: greeting (Pulpit) or section name, month name, month pill and account menu.
-export default function PageHeader({ activeTab, selectedMonth, onMonthChange, user, onLogout, onSetBudget, onAddExpense }) {
+export default function PageHeader({ activeTab, selectedMonth, onMonthChange, user, onLogout, onSetBudget, onAddExpense, canEdit }) {
   const firstName = (user?.full_name || "").trim().split(/\s+/)[0] || user?.email;
   const mobileOverline = activeTab === TABS.DASHBOARD ? `Cześć, ${firstName}` : OVERLINE[activeTab];
 
@@ -26,13 +26,17 @@ export default function PageHeader({ activeTab, selectedMonth, onMonthChange, us
         </div>
         <div className="header-actions">
           <MonthSwitcher value={selectedMonth} onChange={onMonthChange} variant="arrows" />
-          <button type="button" className="btn btn-secondary" onClick={onSetBudget}>
-            Ustaw budżet
-          </button>
-          <button type="button" className="btn btn-primary" onClick={onAddExpense}>
-            <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
-            Dodaj wydatek
-          </button>
+          {canEdit && (
+            <>
+              <button type="button" className="btn btn-secondary" onClick={onSetBudget}>
+                Ustaw budżet
+              </button>
+              <button type="button" className="btn btn-primary" onClick={onAddExpense}>
+                <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
+                Dodaj wydatek
+              </button>
+            </>
+          )}
         </div>
       </header>
 

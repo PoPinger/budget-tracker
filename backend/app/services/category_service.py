@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.app.models.category import Category
 from backend.app.models.user import User
 from backend.app.schemas.category import CategoryCreate, CategoryUpdate
-from backend.app.services.month_service import ensure_month_started
+from backend.app.services.month_service import ensure_month_open, ensure_month_started
 from backend.app.services.recurring_service import sync_recurring_expense
 
 DUPLICATE_CATEGORY_DETAIL = "Kategoria o tej nazwie już istnieje w tym miesiącu."
@@ -79,6 +79,7 @@ def get_category_or_404(db: Session, category_id: int, current_user: User) -> Ca
 
 
 def create_category(db: Session, payload: CategoryCreate, current_user: User) -> Category:
+    ensure_month_open(db, payload.month, current_user)
     _ensure_name_available(db, current_user, payload.month, payload.name.strip())
 
     category = Category(
@@ -106,6 +107,8 @@ def update_category(
     category = get_category_or_404(db, category_id, current_user)
 
     new_month = payload.month if payload.month is not None else category.month
+    ensure_month_open(db, category.month, current_user)
+    ensure_month_open(db, new_month, current_user)
     new_name = payload.name.strip() if payload.name is not None else category.name
     _ensure_name_available(db, current_user, new_month, new_name, exclude_category_id=category.id)
 
@@ -125,5 +128,6 @@ def update_category(
 
 def delete_category(db: Session, category_id: int, current_user: User) -> None:
     category = get_category_or_404(db, category_id, current_user)
+    ensure_month_open(db, category.month, current_user)
     db.delete(category)
     db.commit()

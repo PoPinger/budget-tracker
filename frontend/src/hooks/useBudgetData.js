@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getBudgets, getCategories, getExpenses, getMonthOverview } from "../api";
+import { getBudgets, getCategories, getExpenses, getMonth, getMonthOverview } from "../api";
 
 // Server data shared by all tabs: lists, month overview, loading and error states.
 export function useBudgetData() {
@@ -7,16 +7,20 @@ export function useBudgetData() {
   const [budgets, setBudgets] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [overview, setOverview] = useState(null);
+  // Selected month's state: { status: "not_started" | "active" | "closed", salary, ... }.
+  const [month, setMonth] = useState(null);
 
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingBudgets, setLoadingBudgets] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [loadingOverview, setLoadingOverview] = useState(false);
+  const [loadingMonth, setLoadingMonth] = useState(false);
 
   const [categoriesError, setCategoriesError] = useState("");
   const [budgetsError, setBudgetsError] = useState("");
   const [expensesError, setExpensesError] = useState("");
   const [overviewError, setOverviewError] = useState("");
+  const [monthError, setMonthError] = useState("");
   // True until the first loadAllData finishes; App shows the full-screen loader meanwhile.
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -59,7 +63,7 @@ export function useBudgetData() {
     }
   };
 
-  const loadOverview = async (monthValue) => {
+  const fetchOverview = async (monthValue) => {
     setLoadingOverview(true);
     setOverviewError("");
     try {
@@ -72,6 +76,23 @@ export function useBudgetData() {
       setLoadingOverview(false);
     }
   };
+
+  const loadMonth = async (monthValue) => {
+    setLoadingMonth(true);
+    setMonthError("");
+    try {
+      const data = await getMonth(monthValue);
+      setMonth(data);
+    } catch (error) {
+      setMonth(null);
+      setMonthError(error.message || "Nie udało się pobrać stanu miesiąca.");
+    } finally {
+      setLoadingMonth(false);
+    }
+  };
+
+  // Overview and month state load together: adding a budget, category or expense can start the month.
+  const loadOverview = (monthValue) => Promise.all([fetchOverview(monthValue), loadMonth(monthValue)]);
 
   const loadAllData = async (monthValue) => {
     await Promise.all([
@@ -88,10 +109,12 @@ export function useBudgetData() {
     setBudgets([]);
     setExpenses([]);
     setOverview(null);
+    setMonth(null);
     setCategoriesError("");
     setBudgetsError("");
     setExpensesError("");
     setOverviewError("");
+    setMonthError("");
     setInitialLoading(true);
   };
 
@@ -100,19 +123,23 @@ export function useBudgetData() {
     budgets,
     expenses,
     overview,
+    month,
     loadingCategories,
     loadingBudgets,
     loadingExpenses,
     loadingOverview,
+    loadingMonth,
     categoriesError,
     budgetsError,
     expensesError,
     overviewError,
+    monthError,
     initialLoading,
     loadCategories,
     loadBudgets,
     loadExpenses,
     loadOverview,
+    loadMonth,
     loadAllData,
     reset,
   };
