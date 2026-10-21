@@ -171,7 +171,7 @@ Warning and exceeded states are never shown by color alone: also use a pill with
 
 ## Planned work: month flow
 
-Spec: [`docs/month-flow-spec.md`](docs/month-flow-spec.md) (month states, setup wizard, "Mój miesiąc" dashboard, salary/extra incomes, savings goal, recurring expenses, loading screen, mobile-first). Done in 3 stages; update this file after each one.
+Spec: [`docs/month-flow-spec.md`](docs/month-flow-spec.md) (month states, setup wizard, "Mój miesiąc" dashboard, salary/extra incomes, savings goal, recurring expenses, loading screen, mobile-first). Done in 3 stages; update this file after each one. Stage 3 UI must follow "Stage 3 design" in the spec (tile grid, mockup: [`docs/stage3-mockup.html`](docs/stage3-mockup.html)).
 
 - [x] Stage 1: backend + migration (`month_flow`), loading screen
 - [x] Stage 2: month states + setup wizard (+ closed months read-only on the backend)

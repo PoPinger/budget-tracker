@@ -84,7 +84,9 @@ Keep the current Graphite Volt design and tiles, plus:
 - Budget progress bar color by usage: lime ok, amber at 80 %+, red when exceeded.
 - **New tile "Cel oszczędnościowy":**
   - goal = total income − budget
-  - "Cel zrealizowany w X %", X = (total income − total spent) / goal × 100; can go above 100 % ("112 % – ponad cel").
+  - "Cel zrealizowany w X %":
+    - **Active month:** X = (total income − max(total spent, budget)) / goal × 100. Unspent budget is not counted as saved yet, so X stays at 100 % while spending is within the budget and drops only when the budget is overspent.
+    - **Closed month:** X = (total income − total spent) / goal × 100. Can go above 100 % ("112 % – ponad cel").
   - Green ≥ 100 %, amber 50–99 %, red < 50 %.
   - Negative goal shown in red with a short explanation.
 - Existing exceeded-limits tile stays.
@@ -111,3 +113,77 @@ Keep the current Graphite Volt design and tiles, plus:
 - "Edytuj" and "Dodaj przychód" open a bottom sheet on mobile.
 - Floating "+" never covers content and respects `safe-area-inset`.
 - Web app manifest: name "Budget Tracker", icons from the logo, Graphite Volt theme color, `display: "standalone"`.
+
+---
+
+## Stage 3 design (required): "Kafelki" tile grid
+
+Chosen from three proposals. Reference mockup: [`docs/stage3-mockup.html`](stage3-mockup.html). It is static with sample data; open it in a browser and use the "Makieta" bar at the top to switch states. Where this section and the mockup differ, this section wins. Everything uses the existing Graphite Volt components (`Panel`, `ProgressBar`, `LimitPill`, `ExpenseRow`, pills, buttons) and CSS variables only.
+
+### Page structure (active month)
+
+From top to bottom:
+1. Header: unchanged from today (mobile: greeting, month name, month pill, account menu; desktop: overline "Mój miesiąc", month title, month switcher, "Zamknij miesiąc" (secondary) and "+ Dodaj wydatek" (primary)).
+2. Tile grid (6 tiles).
+3. "Kategorie" card and "Wydatki" card (side by side on desktop, stacked on mobile).
+4. Mobile only: full-width secondary button "Zamknij miesiąc" at the very end of the page.
+5. Mobile only: floating lime "+" (add expense).
+
+### Tile grid
+
+Equal tiles: 2 columns on mobile, 3 columns on desktop (≥ 900 px). Fixed order (left to right, top to bottom):
+
+| # | Tile | Value | Content below the value | Edit |
+|---|---|---|---|---|
+| 1 | **Pozostało do wydania** | budget − spent; `--color-positive`, `--color-exceeded` when negative | budget progress bar (lime < 80 %, amber 80–100 %, red > 100 %) + "Wydano X % budżetu" | – |
+| 2 | **Cel oszczędnościowy** (target icon) | goal amount; red when negative | goal pill with icon + percentage (`✓ 100 %` green / `● 72 %` amber / `▲ 31 %` red) + "Cel zrealizowany · na dziś" or "Ponad cel"; negative goal: short explanation "Budżet przekracza przychody o X" | – |
+| 3 | **Przychody** | total income (salary + extra incomes), positive color | "Wypłata X" + "+ N dodatkowe" | pencil → "Przychody" sheet |
+| 4 | **Budżet** | budget | "X % przychodów" | pencil → "Edytuj budżet" sheet |
+| 5 | **Wydano** | total spent, negative color | "N wydatków" | – |
+| 6 | **Limity** | "exceeded / all categories" | pill "▲ N przekroczony/e" or "✓ Wszystkie w normie" | – (tap scrolls to "Kategorie") |
+
+- Tile 1 has an accent border (positive color mixed with the border color); all other tiles use the normal card border.
+- Editable tiles are whole buttons (min. 44 px tap target, `aria-label` e.g. "Edytuj przychody") with a pencil icon in the top-right corner. Non-editable tiles are plain cards.
+- Tiles have equal height within a row; long labels may wrap to two lines, values never wrap mid-amount.
+
+### "Kategorie" card
+
+- Header: title + "Edytuj" button (pencil, secondary pill button) → "Kategorie" sheet.
+- One compact row per category: name (with a repeat icon for recurring categories), limit pill (percent mode) only for non-recurring categories at ≥ 80 %, a short progress bar, "spent / limit" right-aligned on two lines.
+- Recurring categories are always 100 % used by design: lime bar, no warning pill.
+
+### "Wydatki" card
+
+- Header: title + total spent.
+- Search input (icon inside, placeholder "Szukaj po nazwie lub notatce") filtering by name and note.
+- Filter chips in one horizontally scrollable row (the row scrolls, never the page): "Wszystkie", "Wydatki cykliczne" (repeat icon), then each non-recurring category. One chip active at a time, active chip is lime.
+- List: the "Wydatki cykliczne" group row first (repeat icon, "N pozycje · stałe co miesiąc", total, chevron). Tapping it expands the individual recurring expenses indented under it (left border line); collapsed by default. Then the regular expenses (`ExpenseRow`), newest first.
+- "Wydatki cykliczne" chip shows only the recurring group (expanded).
+- Tapping a regular expense opens the "Edytuj wydatek" sheet (same fields as "Dodaj wydatek" + "Usuń"). Recurring expenses are not edited individually: their amount follows the category limit (edit it in the "Kategorie" sheet).
+
+### Sheets and dialogs
+
+Mobile: bottom sheet (rounded top corners, grabber, title + close "×" button, scrollable body, footer with "Anuluj" (1/3) and the primary action (2/3), 50 px buttons, respects `safe-area-inset-bottom`, dimmed backdrop). Desktop: the same content as a centered dialog (~460 px wide). Amount inputs are large, `inputmode="decimal"`, comma accepted (`parseAmount`).
+
+| Sheet | Opened from | Content | Primary action |
+|---|---|---|---|
+| **Przychody** | tile "Przychody" | "Wypłata" amount field; "Dodatkowe przychody" list (name, date, +amount, edit and delete icon buttons, 44 px each); "+ Dodaj przychód" button; "Przychody razem" total | "Zapisz" (salary) |
+| **Dodaj przychód** / **Edytuj przychód** | "Przychody" sheet | Nazwa, Kwota, Data; hint with the new total income | "Dodaj przychód" / "Zapisz" |
+| **Edytuj budżet** | tile "Budżet" | budget amount; hint "Przychody X → cel oszczędnościowy Y" and the sum of category limits; warning if budget > total income or limits > budget | "Zapisz" |
+| **Kategorie** | "Edytuj" in "Kategorie" card | per category: name, limit, checkbox "Wydatek cykliczny", delete; "+ Dodaj kategorię" | "Zapisz" |
+| **Dodaj wydatek** / **Edytuj wydatek** | floating "+" (mobile), "+ Dodaj wydatek" (desktop), expense row | Nazwa, Kwota, Kategoria + Data (two columns), Notatka; existing inline over-limit warning | "Dodaj wydatek" / "Zapisz" (+ "Usuń" in edit) |
+| **Zamknąć {miesiąc}?** (dialog, centered on all sizes) | "Zamknij miesiąc" | "Miesiąc stanie się tylko do odczytu i zobaczysz jego podsumowanie. Możesz go później otworzyć ponownie." | "Zamknij miesiąc" |
+
+### Closed month
+
+- Top: closed banner (lock icon, "Zamknięty {data}") with a primary "Otwórz ponownie" button (replaces the Stage 2 `MonthClosedNotice` layout).
+- Tile grid with the summary, same tile component, no pencils, in this order: **Przychody razem** (salary + each extra income in the sub-line), **Wydano** ("X % budżetu"), **Zaoszczędzono** (total income − spent, bar by goal %), **Cel oszczędnościowy** (closed-month formula, pill + "Cel zrealizowany" / "Ponad cel"), **Budżet** (pill "▲ Przekroczony o X" when spent > budget), **Limity**.
+- "Przekroczone limity" card: one row per exceeded category with a red bar and "+X" over "limit Y".
+- Below: the "Kategorie" and "Wydatki" cards read-only (no "Edytuj", no sheets, search and filter still work). No floating "+", no "Zamknij miesiąc".
+
+### Navigation and mobile behavior
+
+- Desktop sidebar has a single item "Mój miesiąc". No bottom tab bar on mobile.
+- Floating "+": 58 px lime square (radius 18 px), bottom-right, `right: max(16px, safe-area-inset-right)`, `bottom: 18px + safe-area-inset-bottom`. Page bottom padding (~100 px + safe area) keeps it from covering the last content.
+- No horizontal page scroll at 360–430 px; only the chip row scrolls horizontally.
+- All tap targets ≥ 44 px (icon buttons in rows 44 × 44, chips 36 px high inside a 44 px row).

@@ -1,0 +1,2127 @@
+<!doctype html>
+<!--
+  Stage 3 design reference: proposal 2 "Kafelki" (tile grid). See docs/month-flow-spec.md, "Stage 3 design".
+  Static mockup with sample data. Open in a browser; the bar at the top switches states (sheets, filter, closed month).
+  Styles = snapshot of frontend/src/index.css + mockup additions; the app's index.css stays the single source of truth.
+-->
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+<style>
+/* ===== Snapshot of frontend/src/index.css ===== */
+/* Graphite Volt layout.
+   Desktop (>= 900px): sidebar + main column. Mobile: header + content + fixed bottom tab bar.
+   Colors only through the --color-* variables in :root. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Graphite Volt palette (single source of truth, see CLAUDE.md) */
+  /* Surfaces & text */
+  --color-bg: #0A0A0B;
+  --color-surface: #151517;
+  --color-track: #26262A;
+  --color-text: #F2F2F3;
+  --color-text-secondary: #A0A0A8;
+  --color-border: #2A2A2F;
+  --color-border-strong: #6B6B75;
+
+  /* Brand */
+  --color-primary: #C5F23A;
+  --color-on-primary: #0A0A0B;
+  --color-secondary: #26262A;
+  --color-on-secondary: #ECECEE;
+
+  /* Money semantics */
+  --color-positive: #3DDC97;
+  --color-negative: #FF6B6B;
+  --color-warning: #FFC14D;
+  --color-warning-bg: #2A2210;
+  --color-exceeded: #FF4F73;
+  --color-exceeded-bg: #2C1219;
+
+  --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --sidebar-width: 240px;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.muted {
+  color: var(--color-text-secondary);
+}
+
+.positive {
+  color: var(--color-positive);
+}
+
+.negative {
+  color: var(--color-negative);
+}
+
+.exceeded-text {
+  color: var(--color-exceeded);
+}
+
+/* ---------- Layout ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.main {
+  min-width: 0;
+  width: 100%;
+  max-width: 1280px;
+  padding: 30px 32px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.only-mobile {
+  display: none !important;
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.brand-name-sub {
+  color: var(--color-text-secondary);
+}
+
+.sidebar .brand {
+  padding: 0 8px 22px;
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  object-fit: contain;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.nav-item:hover {
+  color: var(--color-text);
+  background: var(--color-secondary);
+}
+
+.nav-item.active {
+  background: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.sidebar-user {
+  margin-top: auto;
+  padding: 16px 8px 0;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.user-text {
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.user-email {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.logout-btn {
+  align-self: flex-start;
+}
+
+/* ---------- Header ---------- */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.overline {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.page-title {
+  margin-top: 2px;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Month switcher ---------- */
+
+.month-switcher {
+  position: relative;
+}
+
+.month-switcher-arrows {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.month-arrow,
+.month-label {
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  display: grid;
+  place-items: center;
+}
+
+.month-arrow {
+  width: 34px;
+  color: var(--color-text-secondary);
+}
+
+.month-arrow:hover,
+.month-label:hover {
+  color: var(--color-text);
+  background: var(--color-secondary);
+}
+
+.month-label {
+  padding: 0 8px;
+  min-width: 82px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.month-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.month-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 200px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-popover);
+}
+
+.month-option {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+  text-align: left;
+}
+
+.month-option:hover {
+  background: var(--color-secondary);
+}
+
+.month-option.selected {
+  background: var(--color-secondary);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--color-primary) 88%, var(--color-text));
+}
+
+.btn-secondary {
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+}
+
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--color-secondary) 88%, var(--color-text));
+}
+
+.btn-danger {
+  background: var(--color-exceeded-bg);
+  color: var(--color-exceeded);
+}
+
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--color-exceeded-bg) 82%, var(--color-exceeded));
+}
+
+.btn-sm {
+  min-height: 32px;
+  padding: 6px 11px;
+  font-size: 13px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.button-row,
+.row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  min-width: 0;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.card-editing {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.card-intro {
+  margin: -6px 0 16px;
+  font-size: 14px;
+}
+
+/* ---------- Progress + pills ---------- */
+
+.track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-track);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.fill-warn {
+  background: var(--color-warning);
+}
+
+.fill-exceeded {
+  background: var(--color-exceeded);
+}
+
+.pill,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  justify-self: start;
+  align-self: flex-start;
+}
+
+.pill-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.pill-exceeded {
+  background: var(--color-exceeded-bg);
+  color: var(--color-exceeded);
+}
+
+.pill-neutral,
+.chip {
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+}
+
+.chip {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------- Notices ---------- */
+
+.notice {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 14px;
+}
+
+.notice-success {
+  background: color-mix(in srgb, var(--color-positive) 12%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-positive) 25%, transparent);
+  color: var(--color-positive);
+}
+
+.notice-error {
+  background: var(--color-exceeded-bg);
+  border-color: color-mix(in srgb, var(--color-exceeded) 25%, transparent);
+  color: var(--color-exceeded);
+}
+
+.notice-warning {
+  background: var(--color-warning-bg);
+  border-color: color-mix(in srgb, var(--color-warning) 25%, transparent);
+  color: var(--color-warning);
+}
+
+/* ---------- Dashboard ---------- */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.kpi {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.kpi-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.kpi-value {
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.kpi-hero .kpi-value {
+  font-size: 32px;
+}
+
+.kpi-sub {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.kpi-split {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dash-cols {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.usage-list,
+.item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.usage-row {
+  display: grid;
+  gap: 7px;
+}
+
+.usage-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+}
+
+.usage-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.usage-amount {
+  white-space: nowrap;
+}
+
+.usage-percent {
+  font-size: 13px;
+}
+
+.usage-bottom {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+
+.empty {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+/* ---------- Expense rows ---------- */
+
+.expense-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.expense-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 14.5px;
+}
+
+.expense-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.expense-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.expense-main {
+  min-width: 0;
+}
+
+.expense-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.expense-meta,
+.expense-note {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
+.expense-note {
+  font-style: italic;
+}
+
+.expense-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.list-summary {
+  margin: -8px 0 14px;
+  font-size: 13.5px;
+}
+
+/* ---------- Category rows (Kategorie) ---------- */
+
+.category-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.category-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.category-main {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.category-meta {
+  font-size: 13px;
+}
+
+/* ---------- Form + list pages ---------- */
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  grid-template-areas: "add list";
+  gap: 16px;
+  align-items: start;
+}
+
+.split.has-edit {
+  grid-template-areas:
+    "edit list"
+    "add list";
+  grid-template-rows: auto 1fr;
+}
+
+.split-edit {
+  grid-area: edit;
+}
+
+.split-add {
+  grid-area: add;
+}
+
+.split-list {
+  grid-area: list;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field-hint {
+  font-size: 12.5px;
+  color: var(--color-warning);
+}
+
+.input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.btn-lg {
+  min-height: 48px;
+  padding: 12px 20px;
+  font-size: 15px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.icon-btn:hover {
+  background: var(--color-secondary);
+  color: var(--color-text);
+}
+
+.input-lg {
+  min-height: 50px;
+  font-size: 17px;
+}
+
+.amount-input {
+  position: relative;
+}
+
+.amount-input .input {
+  padding-right: 40px;
+}
+
+.amount-suffix {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14.5px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primary);
+}
+
+/* ---------- Month states ---------- */
+
+.month-empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 560px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.month-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.month-empty-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.month-empty .muted {
+  margin: 0 0 8px;
+}
+
+.month-closed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.month-closed-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.month-closed-sub {
+  display: block;
+  font-size: 13px;
+}
+
+/* ---------- Month setup wizard ---------- */
+
+.setup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  max-width: 640px;
+}
+
+/* Long labels ("Skopiuj kategorie i limity...") wrap instead of widening the card. */
+.setup .btn-block {
+  white-space: normal;
+  text-align: center;
+}
+
+.setup-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.setup-head .stepper {
+  flex: 1;
+}
+
+.setup-title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.setup-form > .muted {
+  margin: 0;
+}
+
+.stepper {
+  display: grid;
+  gap: 8px;
+}
+
+.stepper-segments {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepper-segment {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
+.stepper-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-track);
+}
+
+.stepper-segment.done .stepper-bar {
+  background: var(--color-primary);
+}
+
+.stepper-segment[aria-current="step"] {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.setup-categories {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-category {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+.setup-category-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 10px;
+}
+
+.setup-category-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setup-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.setup-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* ---------- Budget page ---------- */
+
+.budget-page {
+  display: grid;
+  gap: 16px;
+  max-width: 640px;
+}
+
+.budget-card {
+  display: grid;
+  gap: 10px;
+}
+
+.budget-amount {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.budget-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.budget-card .row-actions {
+  margin-top: 4px;
+}
+
+/* ---------- Login ---------- */
+
+.auth-shell {
+  min-height: 100vh;
+  padding: 32px;
+  display: grid;
+  place-items: center;
+}
+
+.auth-grid {
+  width: 100%;
+  max-width: 1120px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.auth-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.auth-brand {
+  font-size: 20px;
+}
+
+.auth-brand .brand-logo {
+  width: 46px;
+  height: 46px;
+}
+
+.auth-title {
+  font-size: clamp(2.4rem, 4.6vw, 4rem);
+  line-height: 1.04;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.auth-lead {
+  max-width: 520px;
+  font-size: 17px;
+  color: var(--color-text-secondary);
+}
+
+.feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.feature-item {
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auth-card {
+  padding: 28px;
+}
+
+.auth-card-header {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.auth-card-header h2 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.auth-card .link-btn {
+  font-size: 14px;
+}
+
+/* ---------- Mobile bottom navigation ---------- */
+
+.bottom-nav {
+  display: none;
+}
+
+.account-menu {
+  position: relative;
+}
+
+.avatar-button {
+  border: 0;
+  width: 32px;
+  height: 32px;
+  font-size: 11.5px;
+}
+
+.account-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  min-width: 220px;
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-popover);
+}
+
+.account-popover .logout-btn {
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* ---------- Narrow desktop / tablet ---------- */
+
+@media (max-width: 1180px) and (min-width: 900px) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .split,
+  .split.has-edit {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "edit" "list" "add";
+    grid-template-rows: auto;
+  }
+
+  .split:not(.has-edit) {
+    grid-template-areas: "list" "add";
+  }
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 899px) {
+  .only-desktop {
+    display: none !important;
+  }
+
+  .only-mobile {
+    display: revert !important;
+  }
+
+  .layout {
+    display: block;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main {
+    padding: 14px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    gap: 14px;
+  }
+
+  .mobile-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .mobile-header .page-title {
+    font-size: 23px;
+  }
+
+  /* Wizard: one step per screen, "Wstecz" / "Dalej" fixed at the bottom (bottom nav is hidden). */
+  .setup {
+    padding: 16px;
+  }
+
+  /* Focused / scrolled-to fields stay above the fixed action bar. */
+  html:has(.setup-actions) {
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .setup-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .month-empty {
+    padding: 28px 18px;
+  }
+
+  .month-empty .btn {
+    width: 100%;
+  }
+
+  .mobile-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .card-head {
+    margin-bottom: 12px;
+  }
+
+  .dashboard {
+    gap: 12px;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpi-hero {
+    grid-column: 1 / -1;
+  }
+
+  .kpi-spent {
+    order: 1;
+  }
+
+  .kpi-budget {
+    order: 2;
+  }
+
+  .kpi-hero .kpi-value {
+    font-size: 33px;
+  }
+
+  .kpi:not(.kpi-hero) {
+    padding: 12px 14px;
+    gap: 2px;
+  }
+
+  .kpi:not(.kpi-hero) .kpi-label {
+    font-size: 12.5px;
+  }
+
+  .kpi:not(.kpi-hero) .kpi-value {
+    font-size: 19px;
+  }
+
+  .kpi-split {
+    display: flex !important;
+    font-size: 12.5px;
+  }
+
+  .alerts {
+    display: grid !important;
+    gap: 8px;
+  }
+
+  .alert-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--color-exceeded-bg);
+    color: var(--color-exceeded);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .dash-cols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .usage-list {
+    gap: 0;
+  }
+
+  .usage-row {
+    gap: 6px;
+    padding: 11px 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .usage-row:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .usage-row:last-child {
+    padding-bottom: 0;
+  }
+
+  .usage-row .track {
+    height: 6px;
+  }
+
+  .usage-bottom {
+    display: flex !important;
+  }
+
+  .split,
+  .split.has-edit {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "edit" "list" "add";
+    grid-template-rows: auto;
+    gap: 12px;
+  }
+
+  .split:not(.has-edit) {
+    grid-template-areas: "list" "add";
+  }
+
+  /* Rows become cards: amount on the first line, actions on their own line. */
+  .expense-row {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    row-gap: 8px;
+  }
+
+  .expense-row .row-actions {
+    grid-column: 2 / -1;
+  }
+
+  .category-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .budget-page {
+    max-width: none;
+  }
+
+  .budget-amount {
+    font-size: 30px;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: end;
+    padding: 8px max(8px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px))
+      max(8px, env(safe-area-inset-left, 0px));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .bottom-item {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .bottom-item.active {
+    color: var(--color-primary);
+  }
+
+  .fab {
+    justify-self: center;
+    width: 52px;
+    height: 52px;
+    margin-top: -22px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    display: grid;
+    place-items: center;
+  }
+
+  .auth-shell {
+    padding: 20px 16px 32px;
+    place-items: start stretch;
+  }
+
+  .auth-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .auth-copy {
+    gap: 12px;
+  }
+
+  .auth-title {
+    font-size: 26px;
+    letter-spacing: -0.02em;
+  }
+
+  .auth-card {
+    padding: 20px;
+  }
+
+  .auth-card-header {
+    margin-bottom: 16px;
+  }
+
+  .auth-card-header h2 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 380px) {
+  .field-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .setup-category-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Full-screen loader (startup and first data load). */
+.app-loader {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 16px;
+  text-align: center;
+  background: var(--color-bg);
+}
+
+.app-loader-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.app-loader-title {
+  font-size: clamp(28px, 8.5vw, 34px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.app-loader-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* Shimmer: a lime highlight sweeps across "Budget" in the first half of the cycle and "Tracker" in the second,
+   so it reads as one left-to-right pass. Background-size 300 %: position 100 % and 0 % show only the base color. */
+.brand-name-shimmer .brand-name-main,
+.brand-name-shimmer .brand-name-sub {
+  --shimmer-base: var(--color-text);
+  background-image: linear-gradient(
+    90deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 40%,
+    var(--color-primary) 50%,
+    var(--shimmer-base) 60%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer-first 1.5s linear infinite;
+}
+
+.brand-name-shimmer .brand-name-sub {
+  --shimmer-base: var(--color-text-secondary);
+  animation-name: shimmer-second;
+}
+
+@keyframes shimmer-first {
+  0% {
+    background-position: 100% 0;
+  }
+  50%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@keyframes shimmer-second {
+  0%,
+  50% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+
+  .brand-name-shimmer .brand-name-main,
+  .brand-name-shimmer .brand-name-sub {
+    animation: none;
+  }
+}
+
+/* ===== Mockup additions ===== */
+/* Shared mockup additions on top of the app's index.css (base.css). Colors only via variables. */
+.fill-pos { background: var(--color-positive); }
+.pill-positive {
+  background: color-mix(in srgb, var(--color-positive) 14%, var(--color-surface));
+  color: var(--color-positive);
+}
+.warning-text { color: var(--color-warning); }
+.track-lg { height: 10px; }
+.icon-btn {
+  width: 44px; height: 44px; flex: none;
+  display: grid; place-items: center;
+  border: 0; border-radius: var(--radius-control);
+  background: transparent; color: var(--color-text-secondary);
+}
+.icon-btn:hover { background: var(--color-secondary); color: var(--color-text); }
+.edit-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 6px 12px;
+  border: 0; border-radius: 999px;
+  background: var(--color-secondary); color: var(--color-on-secondary);
+  font-size: 13px; font-weight: 700;
+}
+.m-header { display: none; }
+
+/* Search + filter chips */
+.search-box { position: relative; }
+.search-box svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--color-text-secondary); }
+.search-input { padding-left: 40px; min-height: 44px; }
+.chip-row {
+  display: flex; gap: 8px; overflow-x: auto; margin: 10px -2px 4px; padding: 2px;
+  scrollbar-width: none;
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 6px 14px;
+  border: 1px solid var(--color-border-strong); border-radius: 999px;
+  background: transparent; color: var(--color-text);
+  font-size: 13px; font-weight: 600;
+}
+.filter-chip.on { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary); }
+
+/* Recurring group */
+.rec-group { border-top: 1px solid var(--color-border); }
+.expense-list > .rec-group:first-child { border-top: 0; }
+.rec-head {
+  width: 100%; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto 18px;
+  align-items: center; gap: 12px; padding: 11px 0; min-height: 60px;
+  border: 0; background: transparent; text-align: left; font-size: 14.5px;
+}
+.rec-head .expense-main { display: grid; }
+.rec-icon { color: var(--color-primary); }
+.rec-head .chev { color: var(--color-text-secondary); transition: transform .15s; }
+.rec-group.open .chev { transform: rotate(180deg); }
+.rec-items {
+  margin: 0 0 10px 19px; padding-left: 18px;
+  border-left: 2px solid var(--color-border);
+}
+.rec-items .expense-row:first-child { border-top: 0; padding-top: 4px; }
+
+/* Floating "+" */
+.fab-float {
+  position: fixed; z-index: 25;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  width: 58px; height: 58px; border: 0; border-radius: 18px;
+  background: var(--color-primary); color: var(--color-on-primary);
+  display: grid; place-items: center;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+}
+
+/* Bottom sheet */
+.sheet-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, 0.6); }
+.sheet {
+  position: fixed; z-index: 41; left: 0; right: 0; bottom: 0;
+  max-height: 88dvh; display: flex; flex-direction: column;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border-strong);
+  border-radius: 22px 22px 0 0;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.sheet-grabber { width: 40px; height: 5px; border-radius: 999px; background: var(--color-border-strong); margin: 2px auto 6px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet-title { font-size: 19px; font-weight: 800; }
+.sheet-body { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 6px 0 16px; }
+.sheet-foot { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+.sheet-foot .btn { min-height: 50px; font-size: 15px; }
+.input-lg { min-height: 50px; font-size: 17px; }
+.input-amount { font-size: 24px; font-weight: 800; min-height: 60px; }
+.sheet-note { font-size: 13px; color: var(--color-text-secondary); }
+.mini-list { display: flex; flex-direction: column; }
+.mini-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 4px;
+  min-height: 52px; border-top: 1px solid var(--color-border); font-size: 14.5px;
+}
+.mini-row:first-child { border-top: 0; }
+.mini-row .name { font-weight: 600; }
+.mini-row .meta { font-size: 12.5px; color: var(--color-text-secondary); }
+.mini-row .amt { font-weight: 700; padding-right: 4px; white-space: nowrap; }
+
+/* Desktop: sheets become centered dialogs */
+@media (min-width: 900px) {
+  .sheet {
+    left: 50%; right: auto; bottom: auto; top: 50%; transform: translate(-50%, -50%);
+    width: 460px; border-radius: 18px; border: 1px solid var(--color-border-strong); padding: 16px 20px 20px;
+  }
+  .sheet-grabber { display: none; }
+}
+
+@media (max-width: 899px) {
+  .m-header { display: flex !important; justify-content: space-between; align-items: center; gap: 12px; padding-top: env(safe-area-inset-top, 0px); }
+  .m-header .page-title { font-size: 23px; }
+  .main { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+}
+.alert-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--color-exceeded-bg); color: var(--color-exceeded); font-size: 14px; font-weight: 600; }
+</style>
+<title>Budget Tracker – makieta etapu 3</title>
+<style>
+  /* Proposal 2: equal tiles; editable tiles open their own bottom sheet */
+  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile {
+    position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 132px;
+    padding: 14px; text-align: left; color: var(--color-text);
+    background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 14px;
+  }
+  .tile-label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--color-text-secondary); padding-right: 26px; }
+  .tile-value { font-size: 21px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.2; }
+  .tile-sub { margin-top: auto; font-size: 12px; color: var(--color-text-secondary); }
+  .tile .track { height: 6px; margin-top: auto; }
+  .tile .pill { font-size: 11.5px; padding: 3px 8px; }
+  .tile-edit { position: absolute; top: 10px; right: 10px; color: var(--color-text-secondary); }
+  .tile-accent { border-color: color-mix(in srgb, var(--color-positive) 35%, var(--color-border)); }
+  .tile-label svg { flex: none; }
+  .tile-goal .tile-label svg { color: var(--color-positive); }
+
+  .cat-line { display: grid; grid-template-columns: minmax(0, 1fr) 70px auto; align-items: center; gap: 10px; min-height: 48px; border-top: 1px solid var(--color-border); font-size: 14px; }
+  .cat-line:first-child { border-top: 0; }
+  .cat-line .name { font-weight: 600; display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .cat-line .name svg { color: var(--color-text-secondary); flex: none; }
+  .cat-line .nums { text-align: right; white-space: nowrap; font-size: 13px; }
+  .cat-line .track { height: 6px; }
+
+  .closed-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--color-secondary); font-size: 13.5px; font-weight: 600; }
+  .closed-banner span { display: flex; align-items: center; gap: 8px; }
+  .close-month { min-height: 50px; }
+  .check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14.5px; }
+  .check input { width: 20px; height: 20px; accent-color: var(--color-primary); }
+  .cat-edit { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 8px; padding: 10px 0; border-top: 1px solid var(--color-border); }
+  .cat-edit:first-child { border-top: 0; }
+  .cat-edit .check { grid-column: 1 / -1; min-height: 32px; font-size: 13.5px; }
+  .dialog { position: fixed; z-index: 41; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); max-width: 420px; margin: 0 auto;
+    display: grid; gap: 12px; padding: 20px; background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: 18px; }
+  .dialog .sheet-foot { margin-top: 4px; }
+
+  .mock-nav { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 16px; background: var(--color-secondary); font-size: 12.5px; }
+  .mock-nav b { margin-right: 4px; }
+  .mock-nav a { color: var(--color-primary); }
+  .shot .mock-nav { display: none; }
+
+  @media (min-width: 900px) {
+    .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .tile { padding: 18px; min-height: 150px; }
+    .tile-value { font-size: 26px; }
+    .close-month { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// Sample data + helpers shared by the three mockups.
+const fmt = (n) =>
+  new Intl.NumberFormat("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" })
+    .format(n)
+    .replace(/ | /g, " ") + " zł";
+const pct = (n) => new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 1 }).format(n) + " %";
+
+const DATA = {
+  month: "Październik 2026",
+  monthShort: "paź 2026",
+  salary: 7200,
+  incomes: [
+    { id: 1, name: "Zwrot podatku", amount: 450, date: "6 paź 2026" },
+    { id: 2, name: "Zlecenie – logo", amount: 600, date: "14 paź 2026" },
+  ],
+  budget: 6000,
+  categories: [
+    { id: 1, name: "Mieszkanie", limit: 2200, spent: 2200, recurring: true },
+    { id: 2, name: "Jedzenie", limit: 1400, spent: 1186.3 },
+    { id: 3, name: "Transport", limit: 500, spent: 228 },
+    { id: 4, name: "Rozrywka", limit: 400, spent: 468 },
+    { id: 5, name: "Zdrowie", limit: 300, spent: 85 },
+    { id: 6, name: "Subskrypcje", limit: 120, spent: 120, recurring: true },
+    { id: 7, name: "Internet i telefon", limit: 110, spent: 110, recurring: true },
+  ],
+  expenses: [
+    { name: "Czynsz", cat: "Mieszkanie", date: "1 paź 2026", amount: 2200, recurring: true },
+    { name: "Subskrypcje", cat: "Subskrypcje", date: "1 paź 2026", amount: 120, recurring: true },
+    { name: "Internet i telefon", cat: "Internet i telefon", date: "1 paź 2026", amount: 110, recurring: true },
+    { name: "Biedronka", cat: "Jedzenie", date: "20 paź 2026", amount: 186.4, notes: "Zakupy na weekend" },
+    { name: "Kino", cat: "Rozrywka", date: "19 paź 2026", amount: 68 },
+    { name: "Orlen", cat: "Transport", date: "18 paź 2026", amount: 228 },
+    { name: "Carrefour", cat: "Jedzenie", date: "16 paź 2026", amount: 401 },
+    { name: "Apteka", cat: "Zdrowie", date: "15 paź 2026", amount: 85 },
+    { name: "Koncert", cat: "Rozrywka", date: "12 paź 2026", amount: 400 },
+    { name: "Restauracja Kosmos", cat: "Jedzenie", date: "10 paź 2026", amount: 245 },
+    { name: "Lidl", cat: "Jedzenie", date: "7 paź 2026", amount: 312.9 },
+    { name: "Żabka", cat: "Jedzenie", date: "3 paź 2026", amount: 41 },
+  ],
+  closed: {
+    month: "Wrzesień 2026",
+    monthShort: "wrz 2026",
+    closedAt: "1 paź 2026",
+    salary: 7200,
+    incomes: [{ name: "Premia kwartalna", amount: 800 }],
+    budget: 6000,
+    spent: 6240,
+    exceeded: [
+      { name: "Jedzenie", over: 140, limit: 1400 },
+      { name: "Rozrywka", over: 220, limit: 400 },
+    ],
+    categories: 7,
+    expenses: 41,
+  },
+};
+
+const D = DATA;
+D.totalIncome = D.salary + D.incomes.reduce((s, i) => s + i.amount, 0);
+D.spent = D.expenses.reduce((s, e) => s + e.amount, 0);
+D.remaining = D.budget - D.spent;
+D.usage = (D.spent / D.budget) * 100;
+D.goal = D.totalIncome - D.budget;
+// Active month: unspent budget is not counted as saved yet.
+D.goalPct = ((D.totalIncome - Math.max(D.spent, D.budget)) / D.goal) * 100;
+D.recurring = D.expenses.filter((e) => e.recurring);
+D.recurringTotal = D.recurring.reduce((s, e) => s + e.amount, 0);
+D.regular = D.expenses.filter((e) => !e.recurring);
+D.exceeded = D.categories.filter((c) => c.spent > c.limit);
+
+const C = D.closed;
+C.totalIncome = C.salary + C.incomes.reduce((s, i) => s + i.amount, 0);
+C.goal = C.totalIncome - C.budget;
+C.saved = C.totalIncome - C.spent;
+C.goalPct = (C.saved / C.goal) * 100;
+C.usage = (C.spent / C.budget) * 100;
+
+const limitState = (spent, limit) => (spent > limit ? "exceeded" : spent >= 0.8 * limit ? "warn" : "ok");
+const goalState = (p) => (p >= 100 ? "pos" : p >= 50 ? "warn" : "exceeded");
+const goalText = (p) => (p > 100 ? `${pct(p)} – ponad cel` : `Cel zrealizowany w ${pct(p)}`);
+const initials = (n) => n.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+const ICON = {
+  plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  plusSm: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  pencil: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+  trash: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+  search: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  chevron: '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  repeat: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>',
+  home: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
+  lock: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  logout: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>',
+  x: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  wallet: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>',
+  target: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
+};
+
+const bar = (p, state, cls = "") =>
+  `<div class="track ${cls}"><div class="fill fill-${state === "pos" ? "pos" : state}" style="width:${Math.max(0, Math.min(p, 100))}%"></div></div>`;
+
+function limitPill(c, mode = "amount") {
+  const st = limitState(c.spent, c.limit);
+  if (st === "exceeded")
+    return `<span class="pill pill-exceeded"><span>▲</span>${mode === "percent" ? pct((c.spent / c.limit) * 100) : "Przekroczono o " + fmt(c.spent - c.limit)}</span>`;
+  if (st === "warn")
+    return `<span class="pill pill-warning"><span>●</span>${mode === "percent" ? pct((c.spent / c.limit) * 100) : "Zostało " + fmt(c.limit - c.spent)}</span>`;
+  return "";
+}
+
+function goalPill(p) {
+  const st = goalState(p);
+  const cls = st === "pos" ? "pill-positive" : st === "warn" ? "pill-warning" : "pill-exceeded";
+  const icon = st === "pos" ? "✓" : st === "warn" ? "●" : "▲";
+  return `<span class="pill ${cls}"><span>${icon}</span>${goalText(p)}</span>`;
+}
+
+function expenseRow(e, extra = "") {
+  return `<div class="expense-row">
+    <div class="expense-avatar">${initials(e.name)}</div>
+    <div class="expense-main"><div class="expense-name">${e.name}</div>
+    <div class="expense-meta">${e.cat} · ${e.date}</div>${e.notes ? `<div class="expense-note">${e.notes}</div>` : ""}</div>
+    <div class="expense-amount negative">−${fmt(e.amount)}</div>${extra}</div>`;
+}
+
+function recurringGroup(expanded) {
+  return `<div class="rec-group ${expanded ? "open" : ""}">
+    <button class="rec-head" type="button" aria-expanded="${expanded}">
+      <span class="expense-avatar rec-icon">${ICON.repeat}</span>
+      <span class="expense-main"><span class="expense-name">Wydatki cykliczne</span>
+      <span class="expense-meta">${D.recurring.length} pozycje · stałe co miesiąc</span></span>
+      <span class="expense-amount negative">−${fmt(D.recurringTotal)}</span>${ICON.chevron}
+    </button>
+    ${expanded ? `<div class="rec-items">${D.recurring.map((e) => expenseRow(e)).join("")}</div>` : ""}
+  </div>`;
+}
+
+function searchBar(chips = true, active = "Wszystkie") {
+  const names = ["Wszystkie", "Wydatki cykliczne", ...D.categories.filter((c) => !c.recurring).map((c) => c.name)];
+  return `<div class="search-box">${ICON.search}<input class="input search-input" placeholder="Szukaj po nazwie lub notatce" /></div>
+  ${chips ? `<div class="chip-row">${names.map((n) => `<button class="filter-chip ${n === active ? "on" : ""}">${n === "Wydatki cykliczne" ? ICON.repeat : ""}${n}</button>`).join("")}</div>` : ""}`;
+}
+
+function mobileHeader(overline, title, closed = false) {
+  return `<header class="m-header only-mobile">
+    <div><div class="overline">${overline}</div><h1 class="page-title">${title}</h1></div>
+    <div class="mobile-header-actions"><span class="month-pill">${closed ? C.monthShort : D.monthShort} ▾</span><span class="avatar avatar-button">PS</span></div>
+  </header>`;
+}
+
+function sidebar() {
+  return `<aside class="sidebar"><div class="brand"><img class="brand-logo" src="../frontend/public/icons/logo-transparent.png" alt="" />
+    <span class="brand-name"><span class="brand-name-main">Budget</span> <span class="brand-name-sub">Tracker</span></span></div>
+    <nav class="sidebar-nav"><button class="nav-item active">${ICON.home}Mój miesiąc</button></nav>
+    <div class="sidebar-user"><div class="user-row"><div class="avatar">PS</div><div class="user-text"><div class="user-name">Pat S.</div><div class="user-email">pat@example.com</div></div></div>
+    <button class="btn btn-secondary btn-sm logout-btn">${ICON.logout}Wyloguj</button></div></aside>`;
+}
+
+function desktopHeader(closed = false) {
+  return `<header class="page-header only-desktop"><div><div class="overline">${closed ? "Podsumowanie zamkniętego miesiąca" : "Mój miesiąc"}</div>
+    <h1 class="page-title">${closed ? C.month : D.month}</h1></div>
+    <div class="header-actions"><div class="month-switcher-arrows"><button class="month-arrow">‹</button><span class="month-label">${closed ? C.monthShort : D.monthShort}</span><button class="month-arrow">›</button></div>
+    ${closed ? `<button class="btn btn-secondary">Otwórz ponownie</button>` : `<button class="btn btn-secondary">${ICON.lock}Zamknij miesiąc</button><button class="btn btn-primary">${ICON.plusSm}Dodaj wydatek</button>`}</div></header>`;
+}
+
+const fab = () => `<button class="fab-float only-mobile" aria-label="Dodaj wydatek">${ICON.plus}</button>`;
+
+function sheet(title, body, footer) {
+  return `<div class="sheet-backdrop"></div><div class="sheet" role="dialog" aria-label="${title}">
+    <div class="sheet-grabber"></div><div class="sheet-head"><h2 class="sheet-title">${title}</h2><button class="icon-btn" aria-label="Zamknij">${ICON.x}</button></div>
+    <div class="sheet-body">${body}</div><div class="sheet-foot">${footer}</div></div>`;
+}
+
+function field(label, value, attrs = "") {
+  return `<div class="field"><label>${label}</label><input class="input input-lg" value="${value}" ${attrs} /></div>`;
+}
+
+const state = new Set(location.hash.replace("#", "").split(",").filter(Boolean));
+</script>
+<script>
+const tile = (cls, icon, label, value, extra, editLabel = "") =>
+  `<${editLabel ? `button aria-label="${editLabel}"` : "div"} class="tile ${cls}">${editLabel ? `<span class="tile-edit">${ICON.pencil}</span>` : ""}
+   <span class="tile-label">${icon}${label}</span><span class="tile-value">${value}</span>${extra}</${editLabel ? "button" : "div"}>`;
+
+function catLine(c) {
+  const st = limitState(c.spent, c.limit);
+  return `<div class="cat-line"><span class="name">${c.recurring ? ICON.repeat : ""}<span>${c.name}</span>${!c.recurring && st !== "ok" ? limitPill(c, "percent") : ""}</span>
+    ${bar((c.spent / c.limit) * 100, c.recurring ? "ok" : st)}
+    <span class="nums"><b>${fmt(c.spent)}</b><br><span class="muted">/ ${fmt(c.limit)}</span></span></div>`;
+}
+
+function goalTile(goal, p, closed) {
+  const st = goalState(p);
+  const cls = st === "pos" ? "pill-positive" : st === "warn" ? "pill-warning" : "pill-exceeded";
+  const icon = st === "pos" ? "✓" : st === "warn" ? "●" : "▲";
+  return tile("tile-goal", ICON.target, "Cel oszczędnościowy", fmt(goal),
+    `<span class="pill ${cls}">${icon} ${pct(p)}</span><span class="tile-sub">${p > 100 ? "Ponad cel" : "Cel zrealizowany"}${closed ? "" : " · na dziś"}</span>`);
+}
+
+const lists = (readOnly) => `<div class="dash-cols">
+    <section class="card" id="kategorie"><div class="card-head"><h2 class="card-title">Kategorie</h2>${readOnly ? "" : `<button class="edit-btn">${ICON.pencil}Edytuj</button>`}</div>
+      <div>${D.categories.map(catLine).join("")}</div></section>
+    <section class="card"><div class="card-head"><h2 class="card-title">Wydatki</h2><span class="negative"><b>−${fmt(D.spent)}</b></span></div>
+      ${searchBar(true, state.has("filter") ? "Wydatki cykliczne" : "Wszystkie")}
+      <div class="expense-list" style="margin-top:6px">${recurringGroup(!state.has("rec-closed"))}${state.has("filter") ? "" : D.regular.map((e) => expenseRow(e)).join("")}</div></section>
+  </div>`;
+
+function dashboard() {
+  return `<div class="tiles">
+    ${tile("tile-accent", "", "Pozostało do wydania", `<span class="positive">${fmt(D.remaining)}</span>`, bar(D.usage, D.usage > 100 ? "exceeded" : D.usage >= 80 ? "warn" : "ok") + `<span class="tile-sub">Wydano ${pct(D.usage)} budżetu</span>`)}
+    ${goalTile(D.goal, D.goalPct, false)}
+    ${tile("", "", "Przychody", `<span class="positive">${fmt(D.totalIncome)}</span>`, `<span class="tile-sub">Wypłata ${fmt(D.salary)}<br>+ ${D.incomes.length} dodatkowe</span>`, "Edytuj przychody")}
+    ${tile("", "", "Budżet", fmt(D.budget), `<span class="tile-sub">${pct((D.budget / D.totalIncome) * 100)} przychodów</span>`, "Edytuj budżet")}
+    ${tile("", "", "Wydano", `<span class="negative">${fmt(D.spent)}</span>`, `<span class="tile-sub">${D.expenses.length} wydatków</span>`)}
+    ${tile("", "", "Limity", `${D.exceeded.length} / ${D.categories.length}`, `<span class="pill pill-exceeded">▲ ${D.exceeded.length} przekroczony</span>`)}
+  </div>
+  ${lists(false)}
+  <button class="btn btn-secondary btn-block close-month only-mobile">${ICON.lock}Zamknij miesiąc</button>`;
+}
+
+function closed() {
+  return `<div class="closed-banner"><span>${ICON.lock}Zamknięty ${C.closedAt}</span><button class="btn btn-sm btn-primary">Otwórz ponownie</button></div>
+  <div class="tiles">
+    ${tile("", "", "Przychody razem", `<span class="positive">${fmt(C.totalIncome)}</span>`, `<span class="tile-sub">Wypłata ${fmt(C.salary)}<br>+ Premia kwartalna ${fmt(800)}</span>`)}
+    ${tile("", "", "Wydano", `<span class="negative">${fmt(C.spent)}</span>`, `<span class="tile-sub">${pct(C.usage)} budżetu</span>`)}
+    ${tile("tile-accent", "", "Zaoszczędzono", fmt(C.saved), bar(C.goalPct, goalState(C.goalPct)) + `<span class="tile-sub">Przychody − wydatki</span>`)}
+    ${goalTile(C.goal, C.goalPct, true)}
+    ${tile("", "", "Budżet", fmt(C.budget), `<span class="pill pill-exceeded">▲ Przekroczony o ${fmt(C.spent - C.budget)}</span>`)}
+    ${tile("", "", "Limity", `${C.exceeded.length} / ${C.categories}`, `<span class="pill pill-exceeded">▲ ${C.exceeded.length} przekroczone</span>`)}
+  </div>
+  <section class="card"><div class="card-head"><h2 class="card-title">Przekroczone limity</h2></div>
+    ${C.exceeded.map((e) => `<div class="cat-line"><span class="name">${e.name}</span>${bar(100, "exceeded")}<span class="nums exceeded-text"><b>+${fmt(e.over)}</b><br><span class="muted">limit ${fmt(e.limit)}</span></span></div>`).join("")}</section>`;
+}
+
+const footer = (label) => `<button class="btn btn-secondary">Anuluj</button><button class="btn btn-primary">${label}</button>`;
+
+const SHEETS = {
+  incomes: () => sheet("Przychody",
+    `<div class="field"><label>Wypłata</label><input class="input input-amount" value="7 200,00" inputmode="decimal" /></div>
+     <div><h3 class="card-title" style="font-size:15px;margin-bottom:4px">Dodatkowe przychody</h3>
+     <div class="mini-list">${D.incomes.map((i) => `<div class="mini-row"><span><span class="name">${i.name}</span><br><span class="meta">${i.date}</span></span>
+       <span class="amt positive">+${fmt(i.amount)}</span><button class="icon-btn" aria-label="Edytuj">${ICON.pencil}</button><button class="icon-btn" aria-label="Usuń">${ICON.trash}</button></div>`).join("")}</div></div>
+     <button class="btn btn-secondary btn-block" style="min-height:48px">${ICON.plusSm}Dodaj przychód</button>
+     <div style="display:flex;justify-content:space-between;font-weight:800;padding-top:4px"><span>Przychody razem</span><span class="positive">${fmt(D.totalIncome)}</span></div>`,
+    footer("Zapisz")),
+  income: () => sheet("Dodaj przychód",
+    `${field("Nazwa", "Sprzedaż roweru")}
+     <div class="field"><label>Kwota</label><input class="input input-amount" value="350,00" inputmode="decimal" /></div>
+     ${field("Data", "21.10.2026")}
+     <p class="sheet-note">Przychody razem po zapisaniu: <b class="positive">${fmt(D.totalIncome + 350)}</b></p>`,
+    footer("Dodaj przychód")),
+  budget: () => sheet("Edytuj budżet",
+    `<div class="field"><label>Budżet na październik</label><input class="input input-amount" value="6 000,00" inputmode="decimal" /></div>
+     <p class="sheet-note">Przychody ${fmt(D.totalIncome)} → cel oszczędnościowy ${fmt(D.goal)}. Limity kategorii: ${fmt(D.categories.reduce((s, c) => s + c.limit, 0))}.</p>`,
+    footer("Zapisz")),
+  categories: () => sheet("Kategorie",
+    `<div>${D.categories.slice(0, 4).map((c) => `<div class="cat-edit"><input class="input" value="${c.name}" /><input class="input" value="${fmt(c.limit).replace(" zł", "")}" inputmode="decimal" />
+       <label class="check"><input type="checkbox" ${c.recurring ? "checked" : ""} />Wydatek cykliczny</label></div>`).join("")}</div>
+     <button class="btn btn-secondary btn-block" style="min-height:48px">${ICON.plusSm}Dodaj kategorię</button>`,
+    footer("Zapisz")),
+  expense: () => sheet("Dodaj wydatek",
+    `${field("Nazwa", "Biedronka")}
+     <div class="field"><label>Kwota</label><input class="input input-amount" value="54,20" inputmode="decimal" /></div>
+     <div class="field-row"><div class="field"><label>Kategoria</label><select class="input input-lg"><option>Jedzenie</option></select></div>${field("Data", "21.10.2026")}</div>
+     <div class="notice notice-warning">Jedzenie: po zapisaniu zostanie ${fmt(1400 - 1186.3 - 54.2)} z limitu.</div>`,
+    footer("Dodaj wydatek")),
+};
+
+const confirmClose = `<div class="sheet-backdrop"></div><div class="dialog" role="alertdialog">
+  <h2 class="sheet-title">Zamknąć październik?</h2>
+  <p class="muted">Miesiąc stanie się tylko do odczytu i zobaczysz jego podsumowanie. Możesz go później otworzyć ponownie.</p>
+  <div class="sheet-foot">${footer("Zamknij miesiąc")}</div></div>`;
+
+const nav = `<div class="mock-nav"><b>Makieta:</b>${[["", "Pulpit"], ["sheet-incomes", "Przychody"], ["sheet-income", "Dodaj przychód"], ["sheet-budget", "Budżet"], ["sheet-categories", "Kategorie"], ["sheet-expense", "Dodaj wydatek"], ["filter", "Filtr cykliczne"], ["confirm", "Zamknij miesiąc"], ["closed", "Zamknięty"]]
+  .map(([h, l]) => `<a href="#${h}">${l}</a>`).join(" · ")}</div>`;
+
+function render() {
+  state.clear(); location.hash.replace("#", "").split(",").filter(Boolean).forEach((s) => state.add(s));
+  const isClosed = state.has("closed");
+  const sheetKey = [...state].find((s) => s.startsWith("sheet-"));
+  document.getElementById("root").innerHTML = `${nav}<div class="layout">${sidebar()}<main class="main">
+    ${mobileHeader(isClosed ? "Podsumowanie miesiąca" : "Cześć, Pat", isClosed ? C.month : D.month, isClosed)}
+    ${desktopHeader(isClosed)}
+    ${isClosed ? closed() : dashboard()}
+    </main></div>${isClosed ? "" : fab()}${sheetKey ? SHEETS[sheetKey.slice(6)]() : ""}${state.has("confirm") ? confirmClose : ""}`;
+}
+window.addEventListener("hashchange", render);
+render();
+</script>
+</body>
+</html>
