@@ -57,6 +57,7 @@ frontend/
   src/utils/                   # format.js (money/percent/date/month names, Polish plurals, toAmountInput), month.js,
                                # budget.js (spent per category, limit/budget state, savingsGoal),
                                # validation.js (parseAmount, form validators, over-limit warning)
+  e2e/month-flow.mjs           # Playwright click-through of the whole month flow (see "Click-through test")
   src/index.css                # all styles; Graphite Volt variables in :root; mobile layout below 900 px
   public/icons/logo.png        # original logo (white background); UI uses icons/logo-transparent.png (256x256)
   public/favicon-32.png, apple-touch-icon.png  # generated from the logo
@@ -74,6 +75,7 @@ Month flow data (stage 1):
 - Endpoints: `GET /months/{month}`, `POST /months/setup` (salary + budget + categories + recurring expenses in one transaction, 409 if the month is already started), `GET /months/{month}/previous` (data to copy), `POST /months/{month}/close`, `POST /months/{month}/reopen`, `PUT /months/{month}/salary`, CRUD `/incomes` (`?month=`).
 - Closed months are read-only: every create/update/delete of a budget, category, expense, income or salary in a closed month (including moving data into or out of one) returns 409 "Miesiąc jest zamknięty. Otwórz go ponownie, aby wprowadzić zmiany." (`ensure_month_open` in `month_service`).
 - Frontend: `AppLoader` is shown until the first `loadAllData` finishes (`useBudgetData().initialLoading`).
+- `useBudgetData().loadOverview` remembers the requested month and ignores overview / month / income responses for any other month (quick month switching must not show the month you just left). `GET /stats/month-overview` returns categories sorted by name, like `GET /categories/`.
 
 Month flow frontend (stage 2):
 - `useBudgetData().month` holds the selected month's state; `loadOverview` always reloads it too (old forms can start a month).
@@ -116,6 +118,20 @@ Backend import check (when backend files change; does not need a running DB):
 ```bash
 DATABASE_URL=postgresql+psycopg://u:p@localhost/x python -c "import backend.app.main; print('ok')"
 ```
+
+## Click-through test
+
+`frontend/e2e/month-flow.mjs` (Playwright, dev dependency) clicks through the whole month flow against the local backend and Vite dev server: register (incl. Polish 422 messages), loading screen, empty month, wizard (over-salary warning, copy from previous month, recurring category), tiles, expenses, extra incomes, goal formulas, recurring group, search / filters, budget and category sheets, close month (read-only summary + backend 409 on every edit), reopen, month switcher (arrows, swipe, tap label, far past / future, quick switching). It also checks for horizontal scroll, the floating "+" covering content, mobile tap targets and the manifest. Dates are relative to today; each run registers a new user.
+
+```bash
+# backend on :8000 and `npm run dev` on :5173 running (see "Running locally")
+cd frontend
+npx playwright install chromium         # once (in Claude cloud sessions Chromium is preinstalled:
+                                        # PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers, skip this)
+npm run test:e2e -- chromium 390 shots  # <chromium|webkit> <width> [shots]; width < 900 = mobile
+```
+
+Run it at 360, 390, 430 and 1280 before a release. Screenshots and `results-*.json` go to `frontend/e2e/output/` (git-ignored); exit code 1 if any check fails. `APP_URL` / `API_URL` override the default URLs. WebKit needs `npx playwright install webkit` (blocked by the network policy in Claude cloud sessions so far).
 
 ## Database migrations (Alembic)
 
@@ -215,6 +231,9 @@ Frontend:
 
 Product / tooling:
 - [x] ~~No income concept~~: monthly salary (`months.salary`) and extra incomes (`incomes`) on the backend; UI in stages 2–3.
-- [ ] No tests, no CI, no lint step.
+- [ ] No unit tests, no CI, no lint step (only the Playwright click-through `frontend/e2e/month-flow.mjs`, run by hand).
+- [x] ~~Quick month switching could show the previous month's dashboard under the new month's name~~: stale responses are ignored in `useBudgetData`.
+- [x] ~~"Kategorie" card order changed after edits~~: month overview sorts categories by name.
+- [x] ~~Mobile avatar, "Wyloguj" and "Edytuj" (categories) under 44 px~~: 44 px tap targets below 900 px.
 - [ ] `npx eslint src` crashes (`eslint.config.js` reads `.recommended` from a plugin that no longer exposes it); fix the config before adding a lint step.
 - [x] ~~README local-setup section truncated and Windows-only~~: rewritten for Windows and macOS/Linux.

@@ -24,7 +24,7 @@ def build_month_overview(db: Session, month_value: date, current_user: User) -> 
             select(Category).where(
                 Category.user_id == current_user.id,
                 Category.month == month_value,
-            )
+            ).order_by(Category.name.asc())
         ).all()
     )
 

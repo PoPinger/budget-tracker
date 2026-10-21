@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { getCategories, getExpenses, getIncomes, getMonth, getMonthOverview } from "../api";
 
 // Server data for the dashboard: lists, month overview and state, extra incomes, loading and error states.
@@ -22,6 +22,9 @@ export function useBudgetData() {
   const [monthError, setMonthError] = useState("");
   // True until the first loadAllData finishes; App shows the full-screen loader meanwhile.
   const [initialLoading, setInitialLoading] = useState(true);
+  // Month of the latest loadOverview; responses for any other month are stale (quick month switching) and ignored.
+  const requestedMonth = useRef(null);
+  const isStale = (monthValue) => requestedMonth.current !== monthValue;
 
   const loadCategories = async () => {
     setLoadingCategories(true);
@@ -54,8 +57,10 @@ export function useBudgetData() {
     setOverviewError("");
     try {
       const data = await getMonthOverview(monthValue);
+      if (isStale(monthValue)) return;
       setOverview(data);
     } catch (error) {
+      if (isStale(monthValue)) return;
       setOverview(null);
       setOverviewError(error.message || "Nie udało się pobrać dashboardu.");
     } finally {
@@ -68,8 +73,10 @@ export function useBudgetData() {
     setMonthError("");
     try {
       const data = await getMonth(monthValue);
+      if (isStale(monthValue)) return;
       setMonth(data);
     } catch (error) {
+      if (isStale(monthValue)) return;
       setMonth(null);
       setMonthError(error.message || "Nie udało się pobrać stanu miesiąca.");
     } finally {
@@ -79,16 +86,21 @@ export function useBudgetData() {
 
   const loadIncomes = async (monthValue) => {
     try {
-      setIncomes(await getIncomes(monthValue));
+      const data = await getIncomes(monthValue);
+      if (isStale(monthValue)) return;
+      setIncomes(data);
     } catch (error) {
+      if (isStale(monthValue)) return;
       setIncomes([]);
       setMonthError(error.message || "Nie udało się pobrać przychodów.");
     }
   };
 
   // Overview, month state and incomes load together: every change in a month can affect all three.
-  const loadOverview = (monthValue) =>
-    Promise.all([fetchOverview(monthValue), loadMonth(monthValue), loadIncomes(monthValue)]);
+  const loadOverview = (monthValue) => {
+    requestedMonth.current = monthValue;
+    return Promise.all([fetchOverview(monthValue), loadMonth(monthValue), loadIncomes(monthValue)]);
+  };
 
   const loadAllData = async (monthValue) => {
     await Promise.all([
@@ -110,6 +122,7 @@ export function useBudgetData() {
     setOverviewError("");
     setMonthError("");
     setInitialLoading(true);
+    requestedMonth.current = null;
   };
 
   return {
