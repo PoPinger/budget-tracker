@@ -152,6 +152,14 @@ Contrast (WCAG): every text pair above passes AA (most AAA). Examples: text on b
 
 Warning and exceeded states are never shown by color alone: also use a pill with an icon or text (e.g. "▲ Przekroczono o 20,00 zł").
 
+## Planned work: month flow
+
+Spec: [`docs/month-flow-spec.md`](docs/month-flow-spec.md) (month states, setup wizard, "Mój miesiąc" dashboard, salary/extra incomes, savings goal, recurring expenses, loading screen, mobile-first). Done in 3 stages; update this file after each one.
+
+- [ ] Stage 1: backend + migration, loading screen (Neon backup branch before pushing the migration)
+- [ ] Stage 2: month states + setup wizard
+- [ ] Stage 3: dashboard, recurring expenses, extra incomes, navigation, mobile polish, manifest
+
 ## Known issues (TODO)
 
 Backend / database:
