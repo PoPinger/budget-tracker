@@ -1,118 +1,44 @@
-import { useEffect, useState } from "react";
-import { createBudget, deleteBudget, updateBudget } from "../api";
-import { TABS } from "../constants";
-import { validateBudgetForm } from "../utils/validation";
+import { useState } from "react";
+import { createBudget, updateBudget } from "../api";
+import { toAmountInput } from "../utils/format";
+import { parseAmount, validateSetupBudget } from "../utils/validation";
 
-// Add / edit / delete budget. State lives above the tabs, so it survives tab switches.
-export function useBudgetForms({ data, messages, selectedMonth, setActiveTab }) {
-  const [budgetMonth, setBudgetMonth] = useState(selectedMonth);
+// "Edytuj budżet" sheet: the selected month's budget (created if the month has none).
+export function useBudgetForms({ data, messages, selectedMonth, sheets }) {
+  const [amount, setAmount] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  // New entries default to the month currently shown.
-  useEffect(() => {
-    setBudgetMonth(selectedMonth);
-  }, [selectedMonth]);
-  const [budgetAmount, setBudgetAmount] = useState("");
+  const open = () => {
+    messages.clearMessages();
+    setAmount(data.overview?.budget_id ? toAmountInput(data.overview.total_budget) : "");
+    setError("");
+    sheets.open("budget");
+  };
 
-  const [editingBudgetId, setEditingBudgetId] = useState(null);
-  const [editingBudgetMonth, setEditingBudgetMonth] = useState("");
-  const [editingBudgetAmount, setEditingBudgetAmount] = useState("");
-
-  const { clearMessages, setBudgetFormMessage, setDeleteMessage, setEditMessage } = messages;
-
-  const handleCreateBudget = async (event) => {
+  const save = async (event) => {
     event.preventDefault();
-    clearMessages();
+    const validationError = validateSetupBudget(amount);
+    setError(validationError);
+    if (validationError) return;
 
-    const validationError = validateBudgetForm(budgetMonth, budgetAmount);
-    if (validationError) {
-      setBudgetFormMessage(validationError);
-      return;
-    }
-
+    const budgetId = data.overview?.budget_id;
+    setSaving(true);
     try {
-      await createBudget({
-        month: budgetMonth,
-        total_limit: Number(budgetAmount),
-      });
-
-      setBudgetAmount("");
-      setBudgetFormMessage("Budżet został dodany.");
-      await data.loadBudgets();
+      if (budgetId) {
+        await updateBudget(budgetId, { total_limit: parseAmount(amount) });
+      } else {
+        await createBudget({ month: selectedMonth, total_limit: parseAmount(amount) });
+      }
       await data.loadOverview(selectedMonth);
-    } catch (error) {
-      setBudgetFormMessage(error.message || "Nie udało się dodać budżetu.");
+      sheets.close();
+      messages.showMessage("Budżet został zaktualizowany.");
+    } catch (saveError) {
+      setError(saveError.message || "Nie udało się zapisać budżetu.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const cancelBudgetEdit = () => {
-    setEditingBudgetId(null);
-    setEditingBudgetMonth("");
-    setEditingBudgetAmount("");
-  };
-
-  const handleDeleteBudget = async (budgetId) => {
-    clearMessages();
-    const confirmed = window.confirm("Na pewno usunąć ten budżet?");
-    if (!confirmed) return;
-
-    try {
-      await deleteBudget(budgetId);
-      setDeleteMessage("Budżet został usunięty.");
-      if (editingBudgetId === budgetId) cancelBudgetEdit();
-      await data.loadBudgets();
-      await data.loadOverview(selectedMonth);
-    } catch (error) {
-      setDeleteMessage(error.message || "Nie udało się usunąć budżetu.");
-    }
-  };
-
-  const startBudgetEdit = (budget) => {
-    clearMessages();
-    setEditingBudgetId(budget.id);
-    setEditingBudgetMonth(budget.month);
-    setEditingBudgetAmount(String(budget.total_limit));
-    setActiveTab(TABS.BUDGETS);
-  };
-
-  const handleUpdateBudget = async (event) => {
-    event.preventDefault();
-    clearMessages();
-
-    const validationError = validateBudgetForm(editingBudgetMonth, editingBudgetAmount);
-    if (validationError) {
-      setEditMessage(validationError);
-      return;
-    }
-
-    try {
-      await updateBudget(editingBudgetId, {
-        month: editingBudgetMonth,
-        total_limit: Number(editingBudgetAmount),
-      });
-
-      setEditMessage("Budżet został zaktualizowany.");
-      cancelBudgetEdit();
-      await data.loadBudgets();
-      await data.loadOverview(selectedMonth);
-    } catch (error) {
-      setEditMessage(error.message || "Nie udało się zaktualizować budżetu.");
-    }
-  };
-
-  return {
-    budgetMonth,
-    setBudgetMonth,
-    budgetAmount,
-    setBudgetAmount,
-    editingBudgetId,
-    editingBudgetMonth,
-    setEditingBudgetMonth,
-    editingBudgetAmount,
-    setEditingBudgetAmount,
-    handleCreateBudget,
-    handleDeleteBudget,
-    startBudgetEdit,
-    cancelBudgetEdit,
-    handleUpdateBudget,
-  };
+  return { amount, setAmount, value: parseAmount(amount), error, saving, open, save };
 }

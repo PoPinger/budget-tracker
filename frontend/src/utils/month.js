@@ -15,14 +15,6 @@ export function shiftMonth(monthValue, delta) {
   return toMonthValue(year, month - 1 + delta);
 }
 
-export function monthRange(centerMonth, before, after) {
-  const months = [];
-  for (let delta = after; delta >= -before; delta -= 1) {
-    months.push(shiftMonth(centerMonth, delta));
-  }
-  return months;
-}
-
 // Default date for a new expense: today if it falls in the month, otherwise the 1st.
 export function defaultExpenseDate(monthValue) {
   const today = new Date();

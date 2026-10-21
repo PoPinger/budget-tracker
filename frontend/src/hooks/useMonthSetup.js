@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getPreviousMonth, setupMonth } from "../api";
-import { TABS } from "../constants";
+import { toAmountInput as toInput } from "../utils/format";
 import {
   parseAmount,
   validateSetupBudget,
@@ -13,17 +13,14 @@ export const SETUP_STEPS = ["Wypłata", "Budżet", "Kategorie"];
 let nextRowKey = 1;
 const emptyRow = () => ({ key: nextRowKey++, name: "", limit: "", isRecurring: false });
 
-// Amount from the API (number) -> input text with a comma: 1200.5 -> "1200,50".
-const toInput = (value) => (Number.isInteger(Number(value)) ? String(Number(value)) : Number(value).toFixed(2).replace(".", ","));
-
 const STEP_VALIDATORS = [
   ({ salary }) => validateSetupSalary(salary),
   ({ budget }) => validateSetupBudget(budget),
   ({ rows }) => validateSetupCategories(rows),
 ];
 
-// Month setup wizard (salary, budget, categories). Lives in App, so input survives tab switches.
-export function useMonthSetup({ data, messages, selectedMonth, setActiveTab }) {
+// Month setup wizard (salary, budget, categories). Lives in App, like all app state.
+export function useMonthSetup({ data, messages, selectedMonth }) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [salary, setSalary] = useState("");
@@ -111,11 +108,10 @@ export function useMonthSetup({ data, messages, selectedMonth, setActiveTab }) {
           is_recurring: row.isRecurring,
         })),
       });
-      await Promise.all([data.loadCategories(), data.loadBudgets(), data.loadExpenses(), data.loadOverview(selectedMonth)]);
+      await Promise.all([data.loadCategories(), data.loadExpenses(), data.loadOverview(selectedMonth)]);
       setIsOpen(false);
-      setActiveTab(TABS.DASHBOARD);
       window.scrollTo({ top: 0 });
-      messages.setEditMessage("Miesiąc został rozpoczęty.");
+      messages.showMessage("Miesiąc został rozpoczęty.");
     } catch (saveError) {
       setStepError(saveError.message || "Nie udało się zapisać miesiąca.");
     } finally {

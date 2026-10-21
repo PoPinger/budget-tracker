@@ -184,6 +184,7 @@ Mobile: bottom sheet (rounded top corners, grabber, title + close "×" button, s
 ### Navigation and mobile behavior
 
 - Desktop sidebar has a single item "Mój miesiąc". No bottom tab bar on mobile.
+- Month switcher without a month list or range limit: ‹ › move one month in either direction, tapping the month label jumps back to the current month. Desktop: "‹ paź 2026 ›" in the header. Mobile: "‹ Październik 2026 ›" replaces the page title (44 px arrows); swiping the mobile header left / right goes to the next / previous month. Months without data show "Zacznij kontrolę budżetu".
 - Floating "+": 58 px lime square (radius 18 px), bottom-right, `right: max(16px, safe-area-inset-right)`, `bottom: 18px + safe-area-inset-bottom`. Page bottom padding (~100 px + safe area) keeps it from covering the last content.
 - No horizontal page scroll at 360–430 px; only the chip row scrolls horizontally.
 - All tap targets ≥ 44 px (icon buttons in rows 44 × 44, chips 36 px high inside a 44 px row).

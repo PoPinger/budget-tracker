@@ -1,32 +1,13 @@
 import { useState } from "react";
 
-// Feedback messages: one per add form, plus the page banner for edits and deletes.
+// Page banner under the header (success after saving, errors from list actions).
+// Errors inside a sheet are kept by that sheet's hook.
 export function useMessages() {
-  const [deleteMessage, setDeleteMessage] = useState("");
-  const [editMessage, setEditMessage] = useState("");
-  const [categoryFormMessage, setCategoryFormMessage] = useState("");
-  const [budgetFormMessage, setBudgetFormMessage] = useState("");
-  const [expenseFormMessage, setExpenseFormMessage] = useState("");
+  const [message, setMessage] = useState(null);
 
-  const clearMessages = () => {
-    setDeleteMessage("");
-    setEditMessage("");
-    setCategoryFormMessage("");
-    setBudgetFormMessage("");
-    setExpenseFormMessage("");
-  };
+  // tone: "success" | "error"
+  const showMessage = (text, tone = "success") => setMessage({ text, tone });
+  const clearMessages = () => setMessage(null);
 
-  return {
-    deleteMessage,
-    editMessage,
-    categoryFormMessage,
-    budgetFormMessage,
-    expenseFormMessage,
-    setDeleteMessage,
-    setEditMessage,
-    setCategoryFormMessage,
-    setBudgetFormMessage,
-    setExpenseFormMessage,
-    clearMessages,
-  };
+  return { message, showMessage, clearMessages };
 }

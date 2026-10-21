@@ -1,11 +1,9 @@
-import { LogOut } from "lucide-react";
-import { NAV_ITEMS } from "../constants";
+import { LayoutGrid, LogOut } from "lucide-react";
 import { userInitials } from "../utils/budget";
 import BrandName from "./BrandName";
-import NavIcon from "./NavIcon";
 
-// Desktop navigation (hidden below 900 px, where BottomNav takes over).
-export default function Sidebar({ activeTab, onNavigate, user, onLogout }) {
+// Desktop navigation (hidden below 900 px). The app has one page: "Mój miesiąc".
+export default function Sidebar({ user, onLogout }) {
   const name = user?.full_name || user?.email || "";
 
   return (
@@ -16,18 +14,15 @@ export default function Sidebar({ activeTab, onNavigate, user, onLogout }) {
       </div>
 
       <nav className="sidebar-nav" aria-label="Nawigacja">
-        {NAV_ITEMS.map(({ tab, label }) => (
-          <button
-            key={tab}
-            type="button"
-            className={activeTab === tab ? "nav-item active" : "nav-item"}
-            aria-current={activeTab === tab ? "page" : undefined}
-            onClick={() => onNavigate(tab)}
-          >
-            <NavIcon tab={tab} />
-            {label}
-          </button>
-        ))}
+        <button
+          type="button"
+          className="nav-item active"
+          aria-current="page"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
+          <LayoutGrid size={18} strokeWidth={2} aria-hidden="true" />
+          Mój miesiąc
+        </button>
       </nav>
 
       <div className="sidebar-user">

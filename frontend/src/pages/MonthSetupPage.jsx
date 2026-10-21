@@ -1,33 +1,11 @@
-import { Copy, Plus, X } from "lucide-react";
+import { Copy, X } from "lucide-react";
+import AmountInput from "../components/AmountInput";
+import CategoryRowsEditor from "../components/CategoryRowsEditor";
 import Notice from "../components/Notice";
 import Panel from "../components/Panel";
 import Stepper from "../components/Stepper";
 import { SETUP_STEPS } from "../hooks/useMonthSetup";
 import { formatMoney, formatMonthTitle } from "../utils/format";
-
-function AmountInput({ id, value, onChange, label, autoFocus = false }) {
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <div className="amount-input">
-        <input
-          id={id}
-          className="input input-lg"
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          placeholder="0,00"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          autoFocus={autoFocus}
-        />
-        <span className="amount-suffix" aria-hidden="true">
-          zł
-        </span>
-      </div>
-    </div>
-  );
-}
 
 function SalaryStep({ setup, monthLabel }) {
   return (
@@ -64,7 +42,6 @@ function BudgetStep({ setup }) {
 
 function CategoriesStep({ setup }) {
   const { rows, previous, limitsTotal, budgetValue } = setup;
-  const overBudget = limitsTotal > budgetValue ? limitsTotal - budgetValue : 0;
 
   return (
     <>
@@ -78,67 +55,14 @@ function CategoriesStep({ setup }) {
         </button>
       )}
 
-      <ul className="setup-categories">
-        {rows.map((row, index) => (
-          <li key={row.key} className="setup-category">
-            <div className="setup-category-fields">
-              <div className="field">
-                <label htmlFor={`setup-cat-name-${row.key}`}>Nazwa</label>
-                <input
-                  id={`setup-cat-name-${row.key}`}
-                  className="input input-lg"
-                  type="text"
-                  placeholder="np. Jedzenie"
-                  value={row.name}
-                  onChange={(event) => setup.updateRow(row.key, "name", event.target.value)}
-                />
-              </div>
-              <AmountInput
-                id={`setup-cat-limit-${row.key}`}
-                label="Limit"
-                value={row.limit}
-                onChange={(value) => setup.updateRow(row.key, "limit", value)}
-              />
-            </div>
-            <div className="setup-category-foot">
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={row.isRecurring}
-                  onChange={(event) => setup.updateRow(row.key, "isRecurring", event.target.checked)}
-                />
-                Wydatek cykliczny
-              </label>
-              <button
-                type="button"
-                className="icon-btn"
-                aria-label={`Usuń kategorię ${row.name || index + 1}`}
-                onClick={() => setup.removeRow(row.key)}
-              >
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <button type="button" className="btn btn-secondary btn-block" onClick={setup.addRow}>
-        <Plus size={16} aria-hidden="true" />
-        Dodaj kategorię
-      </button>
-
-      <div className="setup-total">
-        <span className="muted">Suma limitów</span>
-        <b>
-          {formatMoney(limitsTotal)} <span className="muted">/ {formatMoney(budgetValue)}</span>
-        </b>
-      </div>
-      {overBudget > 0 && (
-        <Notice tone="warning">
-          <span aria-hidden="true">▲ </span>
-          Limity przekraczają budżet o {formatMoney(overBudget)}.
-        </Notice>
-      )}
+      <CategoryRowsEditor
+        rows={rows}
+        onChange={setup.updateRow}
+        onAdd={setup.addRow}
+        onRemove={(row) => setup.removeRow(row.key)}
+        limitsTotal={limitsTotal}
+        budget={budgetValue}
+      />
     </>
   );
 }

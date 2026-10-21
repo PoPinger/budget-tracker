@@ -13,7 +13,7 @@ Guidance for Claude Code when working in this repository.
 
 ## Project overview
 
-Budget Tracker: a Polish-language web app for controlling monthly spending. A user sets a monthly budget, creates categories with limits for a month, logs expenses and sees a month dashboard (spent, remaining, per-category usage, exceeded limits).
+Budget Tracker: a Polish-language web app for controlling monthly spending. A user starts a month (salary, budget, categories with limits), logs expenses and extra incomes and sees one "Mój miesiąc" dashboard (remaining budget, savings goal, per-category usage, exceeded limits), then closes the month to get a read-only summary.
 
 | Part | Stack | Deploy |
 |---|---|---|
@@ -41,24 +41,29 @@ backend/
   app/api/v1/endpoints/        # auth, budgets, categories, expenses, stats, months, incomes, health
 frontend/
   src/main.tsx                 # entry: renders App.jsx
-  src/App.jsx                  # auth gate + layout (sidebar / bottom nav) + tab switching; calls all state hooks
-  src/constants.js             # TABS, NAV_ITEMS (Pulpit, Wydatki, Kategorie, Budżet)
+  src/App.jsx                  # auth gate + layout (sidebar, floating "+"); month state -> setup / empty / dashboard;
+                               # calls all state hooks
   src/api.js, auth.js          # fetch client, token storage (localStorage)
-  src/hooks/                   # useBudgetData (server data + loaders), useMessages, useMonthSetup (wizard),
-                               # useCategoryForms / useBudgetForms / useExpenseForms (form state + handlers)
-  src/pages/                   # LoginPage, DashboardPage, MonthSetupPage, CategoriesPage, BudgetsPage, ExpensesPage (render only)
-  src/components/              # MonthEmptyState, MonthClosedNotice, Stepper (month flow),
+  src/hooks/                   # useBudgetData (server data + loaders), useMessages (page banner), useSheets (open sheet),
+                               # useMonthSetup (wizard), useIncomeForms / useBudgetForms / useCategoryForms /
+                               # useExpenseForms (sheet forms), useMonthActions (close / reopen), useExpenseFilters,
+                               # useSwipe (month change by swiping the mobile header)
+  src/pages/                   # LoginPage, DashboardPage ("Mój miesiąc"), MonthSetupPage, MonthSheets (all sheets) (render only)
+  src/components/              # Tile, BottomSheet, AddExpenseFab, AmountInput, CategoryRowsEditor (wizard + sheet),
+                               # MonthEmptyState, MonthClosedNotice, Stepper (month flow),
                                # AppLoader (full-screen loader), BrandName (two-tone "Budget Tracker"),
-                               # Sidebar (desktop), BottomNav (mobile), PageHeader, MonthSwitcher, AccountMenu,
-                               # Panel (card), ProgressBar, LimitPill, ExpenseRow, RowActions, Notice, Banner, MonthInput, NavIcon
-  src/utils/                   # format.js (money/percent/date/month names, Polish plurals), month.js,
-                               # budget.js (spent per category, limit state), validation.js (incl. over-limit warning)
+                               # Sidebar (desktop), PageHeader, MonthSwitcher, AccountMenu,
+                               # Panel (card), ProgressBar, LimitPill, ExpenseRow, Notice, Banner
+  src/utils/                   # format.js (money/percent/date/month names, Polish plurals, toAmountInput), month.js,
+                               # budget.js (spent per category, limit/budget state, savingsGoal),
+                               # validation.js (parseAmount, form validators, over-limit warning)
   src/index.css                # all styles; Graphite Volt variables in :root; mobile layout below 900 px
   public/icons/logo.png        # original logo (white background); UI uses icons/logo-transparent.png (256x256)
   public/favicon-32.png, apple-touch-icon.png  # generated from the logo
+  public/manifest.webmanifest  # PWA manifest (standalone, Graphite Volt colors); icons/icon-192, icon-512, icon-maskable-512
 ```
 
-State rule: all app state lives in hooks called by `App.jsx`, not inside pages, so form input and open edit forms survive tab switches. Pages only render.
+State rule: all app state lives in hooks called by `App.jsx`, not inside pages or sheets. Pages and sheets only render.
 
 API base path: `/api/v1`. Auth is a Bearer token in the `Authorization` header (no cookies).
 
@@ -72,9 +77,17 @@ Month flow data (stage 1):
 
 Month flow frontend (stage 2):
 - `useBudgetData().month` holds the selected month's state; `loadOverview` always reloads it too (old forms can start a month).
-- Pulpit by status: `not_started` -> `MonthEmptyState` ("Zacznij kontrolę budżetu"); `active` -> dashboard; `closed` -> `MonthClosedNotice` ("Otwórz ponownie") + read-only dashboard. "Ustaw budżet / Dodaj wydatek" and the mobile "+" are shown only in an active month.
-- Setup wizard: `useMonthSetup` (state, per-step validation, copy from previous month, save) + `pages/MonthSetupPage.jsx` + `components/Stepper.jsx`. Amounts are text inputs with `inputmode="decimal"`, parsed by `parseAmount` (comma accepted). On mobile the bottom nav is hidden and "Wstecz / Dalej" is fixed at the bottom.
+- Page by status: `not_started` -> `MonthEmptyState` ("Zacznij kontrolę budżetu"); `active` -> dashboard; `closed` -> `MonthClosedNotice` ("Otwórz ponownie") + read-only summary. "Zamknij miesiąc / Dodaj wydatek" and the mobile "+" are shown only in an active month.
+- Setup wizard: `useMonthSetup` (state, per-step validation, copy from previous month, save) + `pages/MonthSetupPage.jsx` + `components/Stepper.jsx`. Amounts are text inputs with `inputmode="decimal"`, parsed by `parseAmount` (comma accepted). On mobile "Wstecz / Dalej" is fixed at the bottom.
 - `api.js` turns FastAPI 422 lists into Polish text: custom messages (e.g. "Kwota jest za duża.") as they are, `value_error` without the "Value error, " prefix, built-in pydantic errors mapped to Polish (`VALIDATION_MESSAGES`). Add new `PydanticCustomError` types to `CUSTOM_ERROR_TYPES`.
+
+Month flow frontend (stage 3, design: "Stage 3 design" in the spec):
+- One page, "Mój miesiąc" (`DashboardPage`): 6 tiles (Pozostało, Cel oszczędnościowy, Przychody, Budżet, Wydano, Limity), "Kategorie" card, "Wydatki" card (search by name/note, filter chips incl. "Wydatki cykliczne", recurring expenses grouped in one expandable row), mobile "Zamknij miesiąc" at the end. The Wydatki / Kategorie / Budżet pages and the bottom tab bar are gone.
+- Editing happens in sheets (`BottomSheet`: bottom sheet below 900 px, centered dialog above; one open at a time via `useSheets`): Przychody (salary + extra incomes list) -> Dodaj/Edytuj przychód, Edytuj budżet, Kategorie (all rows at once, saved as delete/update/create calls), Dodaj/Edytuj wydatek (tap an expense row; recurring expenses are not edited, they follow the category limit), "Zamknąć miesiąc?" dialog. Sheet errors stay in the sheet; success goes to the page banner.
+- Totals: total income = `month.salary + month.extra_income_total`. Savings goal = income − budget; % realized (`savingsGoal` in `utils/budget.js`): active month `(income − max(spent, budget)) / goal`, closed month `(income − spent) / goal`.
+- Closed month: summary tiles (Przychody razem, Wydano, Zaoszczędzono, Cel, Budżet, Limity), "Przekroczone limity" card, read-only Kategorie / Wydatki (search and filters still work).
+- Month switcher (`MonthSwitcher`): no month list and no range limit; ‹ › move one month, tapping the month label jumps back to the current month (a lime dot marks "not the current month"). Desktop: compact "‹ paź 2026 ›" in the header; mobile: "‹ Październik 2026 ›" is the page title, and swiping the mobile header left / right goes to the next / previous month. Months without data show "Zacznij kontrolę budżetu".
+- Amount inputs everywhere: `AmountInput` (`inputmode="decimal"`, comma accepted via `parseAmount`). Expense and income dates must be inside the selected month.
 
 ## Running locally
 
@@ -142,7 +155,7 @@ Dark premium theme: neutral graphite (not navy) with one electric-lime accent. L
 
   /* Surfaces & text */
   --color-bg: #0A0A0B;              /* page background */
-  --color-surface: #151517;         /* cards, panels, sidebar, tab bar */
+  --color-surface: #151517;         /* cards, panels, sidebar, sheets */
   --color-track: #26262A;           /* progress-bar track */
   --color-text: #F2F2F3;            /* primary text */
   --color-text-secondary: #A0A0A8;  /* labels, meta, secondary text */
@@ -175,7 +188,7 @@ Spec: [`docs/month-flow-spec.md`](docs/month-flow-spec.md) (month states, setup 
 
 - [x] Stage 1: backend + migration (`month_flow`), loading screen
 - [x] Stage 2: month states + setup wizard (+ closed months read-only on the backend)
-- [ ] Stage 3: dashboard, recurring expenses, extra incomes, navigation, mobile polish, manifest
+- [x] Stage 3: dashboard, recurring expenses, extra incomes, navigation, mobile polish, manifest (frontend only)
 
 ## Known issues (TODO)
 
@@ -196,9 +209,9 @@ Frontend:
 - [x] ~~Over-limit expenses were blocked~~: allowed, with an inline amber warning before saving; warning (>= 80 %) and exceeded pills everywhere.
 - [x] ~~Unformatted amounts and ISO dates~~: `1 301,00 zł`, `67,5 %`, `17 paź 2026`.
 - [x] ~~Tables cut off on mobile~~: no tables; rows become cards on mobile.
-- [ ] Success/error notices are detected by substring matching on Polish messages ("dodany", "zosta").
+- [x] ~~Success/error notices are detected by substring matching on Polish messages~~: `useMessages().showMessage(text, tone)` carries the tone.
 - [x] ~~`index.html` title is "frontend" and `lang="en"`~~: now "Budget Tracker", `lang="pl"`, PNG favicons.
-- [x] ~~Old navy/blue theme~~: Graphite Volt redesign (sidebar + bottom nav, cards, pills).
+- [x] ~~Old navy/blue theme~~: Graphite Volt redesign (sidebar, cards, pills; tile dashboard since stage 3).
 
 Product / tooling:
 - [x] ~~No income concept~~: monthly salary (`months.salary`) and extra incomes (`incomes`) on the backend; UI in stages 2–3.

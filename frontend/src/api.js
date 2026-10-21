@@ -115,10 +115,6 @@ export async function deleteCategory(categoryId) {
   });
 }
 
-export async function getBudgets() {
-  return apiRequest("/budgets/");
-}
-
 export async function createBudget(data) {
   return apiRequest("/budgets/", {
     method: "POST",
@@ -130,12 +126,6 @@ export async function updateBudget(budgetId, data) {
   return apiRequest(`/budgets/${budgetId}`, {
     method: "PUT",
     body: JSON.stringify(data),
-  });
-}
-
-export async function deleteBudget(budgetId) {
-  return apiRequest(`/budgets/${budgetId}`, {
-    method: "DELETE",
   });
 }
 
@@ -185,5 +175,42 @@ export async function setupMonth(data) {
 export async function reopenMonth(month) {
   return apiRequest(`/months/${month}/reopen`, {
     method: "POST",
+  });
+}
+
+export async function closeMonth(month) {
+  return apiRequest(`/months/${month}/close`, {
+    method: "POST",
+  });
+}
+
+export async function updateSalary(month, salary) {
+  return apiRequest(`/months/${month}/salary`, {
+    method: "PUT",
+    body: JSON.stringify({ salary }),
+  });
+}
+
+export async function getIncomes(month) {
+  return apiRequest(`/incomes/?month=${month}`);
+}
+
+export async function createIncome(data) {
+  return apiRequest("/incomes/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateIncome(incomeId, data) {
+  return apiRequest(`/incomes/${incomeId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteIncome(incomeId) {
+  return apiRequest(`/incomes/${incomeId}`, {
+    method: "DELETE",
   });
 }

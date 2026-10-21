@@ -68,3 +68,10 @@ export function plural(count, one, few, many) {
   if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) return few;
   return many;
 }
+
+// Amount from the API (number) -> input text with a comma: 1200.5 -> "1200,50", 1200 -> "1200".
+export function toAmountInput(value) {
+  if (value === null || value === undefined || value === "") return "";
+  const number = Number(value);
+  return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(".", ",");
+}
