@@ -33,6 +33,7 @@ def _to_expense_response(expense: Expense) -> ExpenseWithCategoryResponse:
         amount=float(expense.amount),
         expense_date=expense.expense_date,
         notes=expense.notes,
+        is_recurring=expense.is_recurring,
         created_at=expense.created_at,
         updated_at=expense.updated_at,
     )

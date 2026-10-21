@@ -2,11 +2,13 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.schemas.amount import Amount
+
 
 class ExpenseCreate(BaseModel):
     category_id: int
     name: str = Field(min_length=2, max_length=255)
-    amount: float = Field(gt=0)
+    amount: Amount = Field(gt=0)
     expense_date: date
     notes: str | None = None
 
@@ -14,7 +16,7 @@ class ExpenseCreate(BaseModel):
 class ExpenseUpdate(BaseModel):
     category_id: int | None = None
     name: str | None = Field(default=None, min_length=2, max_length=255)
-    amount: float | None = Field(default=None, gt=0)
+    amount: Amount | None = Field(default=None, gt=0)
     expense_date: date | None = None
     notes: str | None = None
 
@@ -29,6 +31,7 @@ class ExpenseResponse(BaseModel):
     amount: float
     expense_date: date
     notes: str | None
+    is_recurring: bool
     created_at: datetime
     updated_at: datetime
 
@@ -42,5 +45,6 @@ class ExpenseWithCategoryResponse(BaseModel):
     amount: float
     expense_date: date
     notes: str | None
+    is_recurring: bool
     created_at: datetime
     updated_at: datetime

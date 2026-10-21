@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 import { NAV_ITEMS } from "../constants";
 import { userInitials } from "../utils/budget";
+import BrandName from "./BrandName";
 import NavIcon from "./NavIcon";
 
 // Desktop navigation (hidden below 900 px, where BottomNav takes over).
@@ -11,7 +12,7 @@ export default function Sidebar({ activeTab, onNavigate, user, onLogout }) {
     <aside className="sidebar">
       <div className="brand">
         <img className="brand-logo" src="/icons/logo-transparent.png" alt="" />
-        Budget Tracker
+        <BrandName />
       </div>
 
       <nav className="sidebar-nav" aria-label="Nawigacja">

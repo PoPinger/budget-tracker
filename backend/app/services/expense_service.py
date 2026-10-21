@@ -8,6 +8,7 @@ from backend.app.models.category import Category
 from backend.app.models.expense import Expense
 from backend.app.models.user import User
 from backend.app.schemas.expense import ExpenseCreate, ExpenseUpdate
+from backend.app.services.month_service import ensure_month_started
 
 
 def _get_user_category_or_404(db: Session, category_id: int, current_user: User) -> Category:
@@ -81,6 +82,7 @@ def create_expense(db: Session, payload: ExpenseCreate, current_user: User) -> E
     )
 
     db.add(expense)
+    ensure_month_started(db, payload.expense_date, current_user)
     db.commit()
     db.refresh(expense)
 
@@ -105,6 +107,7 @@ def update_expense(
         expense.amount = payload.amount
     if payload.expense_date is not None:
         expense.expense_date = payload.expense_date
+        ensure_month_started(db, payload.expense_date, current_user)
     if payload.notes is not None:
         expense.notes = payload.notes
 

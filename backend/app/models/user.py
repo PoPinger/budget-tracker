@@ -29,3 +29,5 @@ class User(Base):
     budgets = relationship("Budget", back_populates="user", cascade="all, delete-orphan")
     categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
     expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
+    months = relationship("Month", back_populates="user", cascade="all, delete-orphan")
+    incomes = relationship("Income", back_populates="user", cascade="all, delete-orphan")

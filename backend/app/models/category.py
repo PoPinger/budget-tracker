@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, UniqueConstraint, false, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.base import Base
@@ -22,6 +22,8 @@ class Category(Base):
     month: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     limit_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    # Kategoria cykliczna ma jeden automatyczny wydatek równy limitowi (Expense.is_recurring).
+    is_recurring: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

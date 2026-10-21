@@ -17,6 +17,8 @@ export function useBudgetData() {
   const [budgetsError, setBudgetsError] = useState("");
   const [expensesError, setExpensesError] = useState("");
   const [overviewError, setOverviewError] = useState("");
+  // True until the first loadAllData finishes; App shows the full-screen loader meanwhile.
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const loadCategories = async () => {
     setLoadingCategories(true);
@@ -78,6 +80,7 @@ export function useBudgetData() {
       loadExpenses(),
       loadOverview(monthValue),
     ]);
+    setInitialLoading(false);
   };
 
   const reset = () => {
@@ -89,6 +92,7 @@ export function useBudgetData() {
     setBudgetsError("");
     setExpensesError("");
     setOverviewError("");
+    setInitialLoading(true);
   };
 
   return {
@@ -104,6 +108,7 @@ export function useBudgetData() {
     budgetsError,
     expensesError,
     overviewError,
+    initialLoading,
     loadCategories,
     loadBudgets,
     loadExpenses,

@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from backend.app.models.category import Category
 from backend.app.models.user import User
 from backend.app.schemas.category import CategoryCreate, CategoryUpdate
+from backend.app.services.month_service import ensure_month_started
+from backend.app.services.recurring_service import sync_recurring_expense
 
 DUPLICATE_CATEGORY_DETAIL = "Kategoria o tej nazwie już istnieje w tym miesiącu."
 CATEGORY_UNIQUE_CONSTRAINT = "uq_categories_user_id_month_name"
@@ -84,9 +86,12 @@ def create_category(db: Session, payload: CategoryCreate, current_user: User) ->
         month=payload.month,
         name=payload.name.strip(),
         limit_amount=payload.limit_amount,
+        is_recurring=payload.is_recurring,
     )
 
     db.add(category)
+    ensure_month_started(db, payload.month, current_user)
+    sync_recurring_expense(db, category)
     _commit(db)
     db.refresh(category)
     return category
@@ -108,7 +113,11 @@ def update_category(
     category.name = new_name
     if payload.limit_amount is not None:
         category.limit_amount = payload.limit_amount
+    if payload.is_recurring is not None:
+        category.is_recurring = payload.is_recurring
 
+    ensure_month_started(db, new_month, current_user)
+    sync_recurring_expense(db, category)
     _commit(db)
     db.refresh(category)
     return category

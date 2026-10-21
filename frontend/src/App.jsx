@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getToken, getUser, logout } from "./auth";
+import AppLoader from "./components/AppLoader";
 import Banner from "./components/Banner";
 import BottomNav from "./components/BottomNav";
 import PageHeader from "./components/PageHeader";
@@ -76,6 +77,10 @@ export default function App() {
 
   if (!token) {
     return <LoginPage onAuthSuccess={handleAuthSuccess} />;
+  }
+
+  if (data.initialLoading) {
+    return <AppLoader />;
   }
 
   const pageMessage = messages.deleteMessage || messages.editMessage;

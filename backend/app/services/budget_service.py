@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from backend.app.models.budget import Budget
 from backend.app.models.user import User
 from backend.app.schemas.budget import BudgetCreate, BudgetUpdate
+from backend.app.services.month_service import ensure_month_started
 
 DUPLICATE_BUDGET_DETAIL = "Budżet dla tego miesiąca już istnieje."
 BUDGET_UNIQUE_CONSTRAINT = "uq_budgets_user_id_month"
@@ -100,6 +101,7 @@ def create_budget(db: Session, payload: BudgetCreate, current_user: User) -> Bud
     )
 
     db.add(budget)
+    ensure_month_started(db, payload.month, current_user)
     _commit(db)
     db.refresh(budget)
     return budget
@@ -116,6 +118,7 @@ def update_budget(
     if payload.month is not None:
         _ensure_month_available(db, current_user, payload.month, exclude_budget_id=budget.id)
         budget.month = payload.month
+        ensure_month_started(db, payload.month, current_user)
     if payload.total_limit is not None:
         budget.total_limit = payload.total_limit
 

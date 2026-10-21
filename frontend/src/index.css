@@ -156,6 +156,10 @@ p {
   letter-spacing: -0.01em;
 }
 
+.brand-name-sub {
+  color: var(--color-text-secondary);
+}
+
 .sidebar .brand {
   padding: 0 8px 22px;
 }
@@ -1284,9 +1288,94 @@ p {
   }
 }
 
+/* Full-screen loader (startup and first data load). */
+.app-loader {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 16px;
+  text-align: center;
+  background: var(--color-bg);
+}
+
+.app-loader-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.app-loader-title {
+  font-size: clamp(28px, 8.5vw, 34px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.app-loader-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* Shimmer: a lime highlight sweeps across "Budget" in the first half of the cycle and "Tracker" in the second,
+   so it reads as one left-to-right pass. Background-size 300 %: position 100 % and 0 % show only the base color. */
+.brand-name-shimmer .brand-name-main,
+.brand-name-shimmer .brand-name-sub {
+  --shimmer-base: var(--color-text);
+  background-image: linear-gradient(
+    90deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 40%,
+    var(--color-primary) 50%,
+    var(--shimmer-base) 60%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer-first 1.5s linear infinite;
+}
+
+.brand-name-shimmer .brand-name-sub {
+  --shimmer-base: var(--color-text-secondary);
+  animation-name: shimmer-second;
+}
+
+@keyframes shimmer-first {
+  0% {
+    background-position: 100% 0;
+  }
+  50%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@keyframes shimmer-second {
+  0%,
+  50% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
     transition: none !important;
+  }
+
+  .brand-name-shimmer .brand-name-main,
+  .brand-name-shimmer .brand-name-sub {
+    animation: none;
   }
 }

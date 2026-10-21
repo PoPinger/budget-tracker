@@ -34,10 +34,11 @@ backend/
   app/core/config.py           # Settings (env / backend/.env): DATABASE_URL, SECRET_KEY, FRONTEND_URL, APP_ENV
   app/core/security.py         # password hashing, JWT, get_current_user
   app/core/db.py               # engine, SessionLocal, get_db
-  app/models/                  # User, Budget, Category, Expense
+  app/models/                  # User, Budget, Category, Expense, Month (salary + status), Income (extra incomes)
   app/schemas/                 # Pydantic schemas
-  app/services/                # business logic (budget, category, expense, stats, auth)
-  app/api/v1/endpoints/        # auth, budgets, categories, expenses, stats, health
+  app/services/                # business logic (budget, category, expense, stats, auth, month, month_setup,
+                               # income, recurring)
+  app/api/v1/endpoints/        # auth, budgets, categories, expenses, stats, months, incomes, health
 frontend/
   src/main.tsx                 # entry: renders App.jsx
   src/App.jsx                  # auth gate + layout (sidebar / bottom nav) + tab switching; calls all state hooks
@@ -46,7 +47,8 @@ frontend/
   src/hooks/                   # useBudgetData (server data + loaders), useMessages,
                                # useCategoryForms / useBudgetForms / useExpenseForms (form state + handlers)
   src/pages/                   # LoginPage, DashboardPage, CategoriesPage, BudgetsPage, ExpensesPage (render only)
-  src/components/              # Sidebar (desktop), BottomNav (mobile), PageHeader, MonthSwitcher, AccountMenu,
+  src/components/              # AppLoader (full-screen loader), BrandName (two-tone "Budget Tracker"),
+                               # Sidebar (desktop), BottomNav (mobile), PageHeader, MonthSwitcher, AccountMenu,
                                # Panel (card), ProgressBar, LimitPill, ExpenseRow, RowActions, Notice, Banner, MonthInput, NavIcon
   src/utils/                   # format.js (money/percent/date/month names, Polish plurals), month.js,
                                # budget.js (spent per category, limit state), validation.js (incl. over-limit warning)
@@ -58,6 +60,13 @@ frontend/
 State rule: all app state lives in hooks called by `App.jsx`, not inside pages, so form input and open edit forms survive tab switches. Pages only render.
 
 API base path: `/api/v1`. Auth is a Bearer token in the `Authorization` header (no cookies).
+
+Month flow data (stage 1):
+- `months`: one row per started month (`user_id`, `month`, `salary` nullable, `status` `active`/`closed`, `closed_at`). No row = not started. Creating a budget, category or expense through the old endpoints also starts the month (`ensure_month_started`).
+- `incomes`: extra incomes; `month` is derived from `income_date`.
+- `categories.is_recurring`: a recurring category has exactly one auto-created expense with `expenses.is_recurring = true` (partial unique index `uq_expenses_recurring_category_id`). `sync_recurring_expense` keeps its amount equal to the limit and removes it when the flag is turned off.
+- Endpoints: `GET /months/{month}`, `POST /months/setup` (salary + budget + categories + recurring expenses in one transaction, 409 if the month is already started), `GET /months/{month}/previous` (data to copy), `POST /months/{month}/close`, `POST /months/{month}/reopen`, `PUT /months/{month}/salary`, CRUD `/incomes` (`?month=`). Closed months are not yet read-only on the backend.
+- Frontend: `AppLoader` is shown until the first `loadAllData` finishes (`useBudgetData().initialLoading`).
 
 ## Running locally
 
@@ -156,7 +165,7 @@ Warning and exceeded states are never shown by color alone: also use a pill with
 
 Spec: [`docs/month-flow-spec.md`](docs/month-flow-spec.md) (month states, setup wizard, "Mój miesiąc" dashboard, salary/extra incomes, savings goal, recurring expenses, loading screen, mobile-first). Done in 3 stages; update this file after each one.
 
-- [ ] Stage 1: backend + migration, loading screen (Neon backup branch before pushing the migration)
+- [x] Stage 1: backend + migration (`month_flow`), loading screen
 - [ ] Stage 2: month states + setup wizard
 - [ ] Stage 3: dashboard, recurring expenses, extra incomes, navigation, mobile polish, manifest
 
@@ -184,7 +193,7 @@ Frontend:
 - [x] ~~Old navy/blue theme~~: Graphite Volt redesign (sidebar + bottom nav, cards, pills).
 
 Product / tooling:
-- [ ] No income concept (only budget and expenses).
+- [x] ~~No income concept~~: monthly salary (`months.salary`) and extra incomes (`incomes`) on the backend; UI in stages 2–3.
 - [ ] No tests, no CI, no lint step.
 - [ ] `npx eslint src` crashes (`eslint.config.js` reads `.recommended` from a plugin that no longer exposes it); fix the config before adding a lint step.
 - [x] ~~README local-setup section truncated and Windows-only~~: rewritten for Windows and macOS/Linux.

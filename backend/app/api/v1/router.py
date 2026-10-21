@@ -6,6 +6,8 @@ from backend.app.api.v1.endpoints import (
     categories,
     expenses,
     health,
+    incomes,
+    months,
     stats,
 )
 
@@ -17,3 +19,5 @@ api_router.include_router(categories.router, prefix="/categories", tags=["Catego
 api_router.include_router(budgets.router, prefix="/budgets", tags=["Budgets"])
 api_router.include_router(expenses.router, prefix="/expenses", tags=["Expenses"])
 api_router.include_router(stats.router, prefix="/stats", tags=["Stats"])
+api_router.include_router(months.router, prefix="/months", tags=["Months"])
+api_router.include_router(incomes.router, prefix="/incomes", tags=["Incomes"])
